@@ -1,0 +1,22 @@
+from django.utils import timezone
+from .models import Portefeuille, HistoriquePaiement
+
+
+def confirmer_rh(portefeuille: Portefeuille) -> Portefeuille:
+    portefeuille.statut = 'CONFIRME_RH'
+    portefeuille.save(update_fields=['statut', 'modifie_le'])
+    return portefeuille
+
+
+def marquer_paye(portefeuille: Portefeuille) -> Portefeuille:
+    portefeuille.statut = 'PAYE'
+    portefeuille.save(update_fields=['statut', 'modifie_le'])
+    # Enregistrer dans l'historique
+    HistoriquePaiement.objects.create(
+        employe       = portefeuille.employe,
+        portefeuille  = portefeuille,
+        date_paiement = timezone.now().date(),
+        montant_total = portefeuille.montant_total,
+        nombre_jours  = portefeuille.nombre_jours_impayes,
+    )
+    return portefeuille
