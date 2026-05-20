@@ -48,7 +48,8 @@ class AttendanceAdmin(admin.ModelAdmin):
     def worked_hours_display(self, obj):
         if obj.worked_hours is None:
             return format_html('<span style="color:gray">—</span>')
-        color = "green" if obj.worked_hours > 2 else "orange"
+        color  = "green" if obj.worked_hours > 2 else "orange"
+        heures = f"{obj.worked_hours:.2f} h"   # ← formaté en dehors
         return format_html(
-            '<span style="color:{}">{:.2f} h</span>', color, obj.worked_hours
+            '<span style="color:{}">{}</span>', color, heures
         )
