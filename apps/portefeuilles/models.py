@@ -5,7 +5,7 @@ from apps.employes.models import Employe
 class Portefeuille(models.Model):
     STATUT_CHOICES = [
         ('EN_ATTENTE',   'En attente'),
-        ('CONFIRME_RH',  'Confirmé RH'),
+        # ('CONFIRME_RH',  'Confirmé RH'),
         ('PAYE',         'Payé'),
         ('IMPAYE',       'Impayé'),
     ]

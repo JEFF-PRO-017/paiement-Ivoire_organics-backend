@@ -8,7 +8,7 @@ class OdooAttendanceConfig(AppConfig):
     def ready(self):
         # Évite le double démarrage en mode dev (reloader)
         import os
-        if os.environ.get("RUN_MAIN") != "true":
-            return
+        # if os.environ.get("RUN_MAIN") != "true":
+        #     return
         from .scheduler import start
         start()

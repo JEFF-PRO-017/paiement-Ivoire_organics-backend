@@ -37,7 +37,6 @@ def save_employees(employees: list):
             nom_complet  = emp["name"],
             departement  = emp["department_id"][1] if emp.get("department_id") else "",
             site_travail = nom_site or "",
-            statut       = "INACTIF",  # activation manuelle dans l'admin
         )
         logger.info(f"[Odoo] Employé créé : {emp['name']} (odoo_id={emp['id']})")
 
@@ -47,53 +46,72 @@ def save_employees(employees: list):
 def save_attendances(attendances: list):
     from apps.employes.models import Employe
     from apps.portefeuilles.models import Portefeuille
+    from apps.odoo_attendance.models import Attendance
+    from django.utils import timezone
 
     logger.info(f"[Odoo] {len(attendances)} présence(s) à traiter.")
-    print(f"Présences à traiter : {len(attendances)}")
+
     for att in attendances:
-        # 1. Valider : sign_out + worked_hours > 2 (présence complète)
+        odoo_id = att.get("id")
+        if not odoo_id:
+            logger.warning(f"[Odoo] Présence sans ID ignorée : {att}")
+            continue  # ✅ skip si pas d'ID
+
+        # Vérifier doublon
+        if Attendance.objects.filter(oodo_attendance_id=odoo_id).exists():
+            continue
+
+        # Conversion date
+        try:
+            naive_dt = datetime.strptime(att["name"], "%Y-%m-%d %H:%M:%S")
+            aware_dt = timezone.make_aware(naive_dt)
+        except (ValueError, KeyError) as e:
+            logger.warning(f"[Odoo] Date invalide pour présence {odoo_id} : {e}")
+            continue  # ✅ skip si date invalide
+
+        Attendance.objects.create(
+            employee_id       = att["employee_id"][0],
+            employee_name     = att["employee_id"][1] if att.get("employee_id") else "Inconnu",
+            action            = att["action"],
+            name              = aware_dt,
+            worked_hours      = att.get("worked_hours"),
+            oodo_attendance_id= odoo_id,  # ✅
+        )
+
+        # Suite logique portefeuille...
         if att.get("action") != "sign_out":
             continue
         if (att.get("worked_hours") or 0) <= 2:
             continue
 
-        # 2. Trouver l'employé local
         odoo_emp_id = att["employee_id"][0]
         employe = Employe.objects.filter(odoo_id=odoo_emp_id).first()
         if not employe:
-            logger.warning(f"[Odoo] Employé odoo_id={odoo_emp_id} introuvable en base.")
             continue
 
-        # 3. Extraire la date UTC de la présence (format Odoo : "2026-05-05 20:02:54")
         try:
-            dt_utc    = datetime.strptime(att["name"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dt_timezone.utc)
-            date_str  = dt_utc.date().isoformat()   # "2026-05-05"
+            dt_utc   = datetime.strptime(att["name"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dt_timezone.utc)
+            date_str = dt_utc.date().isoformat()
         except (ValueError, KeyError):
-            logger.warning(f"[Odoo] Date invalide pour présence : {att}")
             continue
 
-        # 4. Chercher un portefeuille EN_ATTENTE ou IMPAYE pour cet employé
         portefeuille = Portefeuille.objects.filter(
             employe=employe,
             statut__in=["EN_ATTENTE"]
         ).first()
 
         if portefeuille:
-            # Éviter les doublons de date dans periodes_paiement
             if date_str in portefeuille.periodes_paiement:
-                logger.info(f"[Odoo] Présence {date_str} déjà enregistrée pour {employe.nom_complet}.")
                 continue
             portefeuille.periodes_paiement.append(date_str)
             portefeuille.nombre_jours_impayes += 1
             portefeuille.save(update_fields=["periodes_paiement", "nombre_jours_impayes", "modifie_le"])
-            logger.info(f"[Odoo] Portefeuille #{portefeuille.id} mis à jour : +1 jour ({date_str}).")
         else:
-            # Créer un nouveau portefeuille
-            pf = Portefeuille.objects.create(
+            Portefeuille.objects.create(
                 employe              = employe,
                 nombre_jours_impayes = 1,
-                montant_journalier   = 3000,   # valeur par défaut — à paramétrer
+                montant_journalier   = 3000,
                 periodes_paiement    = [date_str],
                 statut               = "EN_ATTENTE",
             )
-            logger.info(f"[Odoo] Portefeuille créé #{pf.id} pour {employe.nom_complet} ({date_str}).")
+        print(f"Portefeuille traité pour {employe.nom_complet} : {date_str}")

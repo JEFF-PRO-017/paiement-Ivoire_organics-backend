@@ -26,7 +26,7 @@ INSTALLED_APPS = [
     'apps.portefeuilles',
     'apps.dashboard',
     'apps.empreinte',
-    'apps.odoo_attendance.apps.OdooAttendanceConfig',
+    'apps.odoo_attendance',
 ]
 
 MIDDLEWARE = [
@@ -80,14 +80,16 @@ REST_FRAMEWORK = {
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=config('ACCESS_TOKEN_LIFETIME_MINUTES', cast=int, default=30)),
+    'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=config('ACCESS_TOKEN_LIFETIME_MINUTES', cast=int, default=60)),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=config('REFRESH_TOKEN_LIFETIME_DAYS', cast=int, default=7)),
     'ROTATE_REFRESH_TOKENS':  True,
     'BLACKLIST_AFTER_ROTATION': False,
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # En prod : lister les origines autorisées
+CORS_ALLOW_ALL_ORIGINS  = DEBUG
+CORS_ALLOWED_ORIGINS    = config('CORS_ALLOWED_ORIGINS', default='').split(',')
+CORS_ALLOW_CREDENTIALS  = True
 
 # ── Internationalisation ──────────────────────────────────────────────────────
 LANGUAGE_CODE = 'fr-fr'

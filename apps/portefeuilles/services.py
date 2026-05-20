@@ -3,7 +3,7 @@ from .models import Portefeuille, HistoriquePaiement
 
 
 def confirmer_rh(portefeuille: Portefeuille) -> Portefeuille:
-    portefeuille.statut = 'CONFIRME_RH'
+    portefeuille.statut = 'IMPAYE'
     portefeuille.save(update_fields=['statut', 'modifie_le'])
     return portefeuille
 

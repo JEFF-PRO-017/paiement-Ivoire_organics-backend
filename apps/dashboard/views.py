@@ -27,8 +27,8 @@ def _appliquer_filtres(request):
 @permission_classes([IsAuthenticated])
 def stats_view(request):
     nombre_employes = Employe.objects.filter(statut='ACTIF').count()
-    agg          = Portefeuille.objects.filter(statut__in=['EN_ATTENTE', 'CONFIRME_RH', 'IMPAYE']).aggregate(total_jours=Sum('nombre_jours_impayes'))
-    pfs          = Portefeuille.objects.filter(statut__in=['EN_ATTENTE', 'CONFIRME_RH', 'IMPAYE'])
+    agg          = Portefeuille.objects.filter(statut__in=['EN_ATTENTE', 'IMPAYE']).aggregate(total_jours=Sum('nombre_jours_impayes'))
+    pfs          = Portefeuille.objects.filter(statut__in=['EN_ATTENTE', 'IMPAYE'])
     somme_totale = sum(p.montant_total for p in pfs)
     return Response({'nombre_employes': nombre_employes, 'total_jours_cumules': agg['total_jours'] or 0, 'somme_totale_a_payer': somme_totale})
 
@@ -36,7 +36,7 @@ def stats_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def jours_cumules_view(request):
-    pfs   = Portefeuille.objects.filter(statut__in=['EN_ATTENTE', 'CONFIRME_RH'])
+    pfs   = Portefeuille.objects.filter(statut__in=['EN_ATTENTE', 'IMPAYE'])
     dates = [d for pf in pfs for d in pf.periodes_paiement]
     return Response(sorted(set(dates)))
 
@@ -44,8 +44,9 @@ def jours_cumules_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def historique_view(request):
-    limit = int(request.query_params.get('limit', 3))
-    qs    = _appliquer_filtres(request).values('id', 'date_paiement', 'montant_total')[:limit]
+    # limit = int(request.query_params.get('limit', 4))
+    # qs    = _appliquer_filtres(request).values('id', 'date_paiement','nombre_jours','montant_total','employe__nom_complet','employe__id','employe__departement','portefeuille__statut')[:limit]
+    qs    = _appliquer_filtres(request).values('id', 'date_paiement','nombre_jours','montant_total','employe__nom_complet','employe__id','employe__departement','portefeuille__statut')
     return Response(list(qs))
 
 
