@@ -2,13 +2,20 @@
 services.py
 ───────────
 Persistance des données Odoo en base locale.
-Toute la logique métier est ici — le scheduler appelle uniquement ces fonctions.
 """
 
 import logging
 from datetime import datetime, timezone as dt_timezone
+from django.conf import settings
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+IS_DEV = settings.DEBUG
+
+
+def _dev(msg: str):
+    if IS_DEV:
+        print(f"[DEV] {msg}")
 
 
 # ── Employés ──────────────────────────────────────────────────────────────────
@@ -17,20 +24,21 @@ def save_employees(employees: list):
     from apps.employes.models import Employe
     from apps.accounts.models import Site
 
-    logger.info(f"[Odoo] {len(employees)} employé(s) à traiter.")
+    created = skipped = 0
 
     for emp in employees:
-        # Employé déjà en base → skip (pas d'écrasement des données manuelles)
         if Employe.objects.filter(odoo_id=emp["id"]).exists():
+            skipped += 1
             continue
 
-        site_id = None
         nom_site = emp.get("work_location")
         if nom_site:
             site = Site.objects.filter(nom__iexact=nom_site).first()
-            site_id = site.id if site else None
             if not site:
-                logger.warning(f"[Odoo] Site introuvable : '{nom_site}' (employé {emp.get('name')})")
+                logger.warning(
+                    f"[Services] Site introuvable : '{nom_site}' "
+                    f"(employé {emp.get('name')} odoo_id={emp['id']})"
+                )
 
         Employe.objects.create(
             odoo_id      = emp["id"],
@@ -38,7 +46,11 @@ def save_employees(employees: list):
             departement  = emp["department_id"][1] if emp.get("department_id") else "",
             site_travail = nom_site or "",
         )
-        logger.info(f"[Odoo] Employé créé : {emp['name']} (odoo_id={emp['id']})")
+        created += 1
+        logger.debug(f"[Services] Employé créé : {emp['name']} (odoo_id={emp['id']})")
+
+    logger.info(f"[Services] Employés — {created} créés, {skipped} ignorés (déjà en base).")
+    _dev(f"save_employees : {created} créés / {skipped} skippés.")
 
 
 # ── Présences ─────────────────────────────────────────────────────────────────
@@ -47,38 +59,39 @@ def save_attendances(attendances: list):
     from apps.employes.models import Employe
     from apps.portefeuilles.models import Portefeuille
     from apps.odoo_attendance.models import Attendance
-    from django.utils import timezone
 
-    logger.info(f"[Odoo] {len(attendances)} présence(s) à traiter.")
+    created = skipped = errors = portefeuilles_ok = 0
 
     for att in attendances:
         odoo_id = att.get("id")
         if not odoo_id:
-            logger.warning(f"[Odoo] Présence sans ID ignorée : {att}")
-            continue  # ✅ skip si pas d'ID
-
-        # Vérifier doublon
-        if Attendance.objects.filter(oodo_attendance_id=odoo_id).exists():
+            logger.warning(f"[Services] Présence sans ID ignorée : {att}")
+            errors += 1
             continue
 
-        # Conversion date
+        if Attendance.objects.filter(oodo_attendance_id=odoo_id).exists():
+            skipped += 1
+            continue
+
         try:
             naive_dt = datetime.strptime(att["name"], "%Y-%m-%d %H:%M:%S")
             aware_dt = timezone.make_aware(naive_dt)
         except (ValueError, KeyError) as e:
-            logger.warning(f"[Odoo] Date invalide pour présence {odoo_id} : {e}")
-            continue  # ✅ skip si date invalide
+            logger.warning(f"[Services] Date invalide pour présence {odoo_id} : {e}")
+            errors += 1
+            continue
 
         Attendance.objects.create(
-            employee_id       = att["employee_id"][0],
-            employee_name     = att["employee_id"][1] if att.get("employee_id") else "Inconnu",
-            action            = att["action"],
-            name              = aware_dt,
-            worked_hours      = att.get("worked_hours"),
-            oodo_attendance_id= odoo_id,  # ✅
+            employee_id        = att["employee_id"][0],
+            employee_name      = att["employee_id"][1] if att.get("employee_id") else "Inconnu",
+            action             = att["action"],
+            name               = aware_dt,
+            worked_hours       = att.get("worked_hours"),
+            oodo_attendance_id = odoo_id,
         )
+        created += 1
 
-        # Suite logique portefeuille...
+        # ── Portefeuille ──────────────────────────────────────────────────────
         if att.get("action") != "sign_out":
             continue
         if (att.get("worked_hours") or 0) <= 2:
@@ -87,6 +100,7 @@ def save_attendances(attendances: list):
         odoo_emp_id = att["employee_id"][0]
         employe = Employe.objects.filter(odoo_id=odoo_emp_id).first()
         if not employe:
+            logger.debug(f"[Services] Employé odoo_id={odoo_emp_id} absent en base — portefeuille ignoré.")
             continue
 
         try:
@@ -114,4 +128,15 @@ def save_attendances(attendances: list):
                 periodes_paiement    = [date_str],
                 statut               = "EN_ATTENTE",
             )
-        print(f"Portefeuille traité pour {employe.nom_complet} : {date_str}")
+
+        portefeuilles_ok += 1
+        logger.debug(f"[Services] Portefeuille traité : {employe.nom_complet} — {date_str}")
+
+    logger.info(
+        f"[Services] Présences — {created} créées, {skipped} ignorées, "
+        f"{errors} erreurs, {portefeuilles_ok} portefeuilles mis à jour."
+    )
+    _dev(
+        f"save_attendances : {created} créées / {skipped} skippées / "
+        f"{errors} erreurs / {portefeuilles_ok} portefeuilles OK."
+    )
