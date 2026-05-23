@@ -9,8 +9,7 @@ def confirmer_rh(portefeuille: Portefeuille) -> Portefeuille:
 
 
 def marquer_paye(portefeuille: Portefeuille) -> Portefeuille:
-    portefeuille.statut = 'PAYE'
-    portefeuille.save(update_fields=['statut', 'modifie_le'])
+
     # Enregistrer dans l'historique
     HistoriquePaiement.objects.create(
         employe       = portefeuille.employe,
@@ -18,5 +17,9 @@ def marquer_paye(portefeuille: Portefeuille) -> Portefeuille:
         date_paiement = timezone.now().date(),
         montant_total = portefeuille.montant_total,
         nombre_jours  = portefeuille.nombre_jours_impayes,
+        periodes_paiement = portefeuille.periodes_paiement,
+        statut = 'PAYE',
     )
+    portefeuille.statut = 'PAYE'
+    portefeuille.save(update_fields=['modifie_le','statut'])
     return portefeuille

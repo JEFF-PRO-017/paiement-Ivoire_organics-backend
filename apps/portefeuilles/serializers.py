@@ -18,4 +18,4 @@ class PortefeuilleSerializer(serializers.ModelSerializer):
 class HistoriquePaiementSerializer(serializers.ModelSerializer):
     class Meta:
         model  = HistoriquePaiement
-        fields = ['id', 'date_paiement', 'montant_total', 'nombre_jours']
+        fields = ['id', 'date_paiement', 'montant_total', 'nombre_jours', 'periodes_paiement','statut']

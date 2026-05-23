@@ -104,6 +104,8 @@ def save_attendances(attendances: list):
             continue
 
         try:
+            employe.statut = 'ACTIF'
+            employe.save(update_fields=['statut'])
             dt_utc   = datetime.strptime(att["name"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dt_timezone.utc)
             date_str = dt_utc.date().isoformat()
         except (ValueError, KeyError):

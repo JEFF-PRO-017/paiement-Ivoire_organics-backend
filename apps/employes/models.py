@@ -8,7 +8,7 @@ class Employe(models.Model):
     nom_complet    = models.CharField(max_length=150)
     departement    = models.CharField(max_length=100)
     site_travail   = models.CharField(max_length=100)
-    statut         = models.CharField(max_length=10, choices=STATUT_CHOICES, default='ACTIF')
+    statut         = models.CharField(max_length=10, choices=STATUT_CHOICES, default='INACTIF')
     # Empreinte digitale (template binaire — rempli par le driver USB)
     empreinte_template = models.BinaryField(null=True, blank=True)
 
