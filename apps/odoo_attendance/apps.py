@@ -8,13 +8,19 @@ class OdooAttendanceConfig(AppConfig):
     def ready(self):
         import os
 
-        # Ne lance le scheduler que si explicitement activé
-        if os.environ.get("SCHEDULER_ENABLED") != "true":
-            return
+        # if os.environ.get("SCHEDULER_ENABLED") != "true":
+        #     return
 
-        # Évite le double démarrage en mode dev (reloader)
         if os.environ.get("RUN_MAIN") == "false":
             return
 
+        import threading
         from .scheduler import start
-        start()
+
+        def delayed_start():
+            import time
+            time.sleep(60)  # attendre 1 minute
+            start()
+
+        thread = threading.Thread(target=delayed_start, daemon=True)
+        thread.start()
