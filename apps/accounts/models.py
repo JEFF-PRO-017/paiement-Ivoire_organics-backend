@@ -5,7 +5,6 @@ from django.db import models
 
 
 class Site(models.Model):
-    id           = models.CharField(('Identifiant'), primary_key=True, default=uuid.uuid4, editable=False)
     nom = models.CharField(max_length=100, unique=True)
 
     class Meta:
