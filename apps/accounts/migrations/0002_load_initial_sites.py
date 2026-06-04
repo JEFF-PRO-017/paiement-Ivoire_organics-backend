@@ -1,27 +1,16 @@
 from django.db import migrations
-import uuid
 
 def load_sites(apps, schema_editor):
     Site = apps.get_model('accounts', 'Site')
     
-    sites = [
-        {
-            'nom': 'LARABIA',
-        },
-        {
-            'nom': 'MONGAHA',
-        },
-        {
-            'nom': 'KATIOFI',
-        }
-    ]
-    for site_data in sites:
-        Site.objects.get_or_create(defaults=site_data)
+    sites = ['LARABIA', 'MONGAHA', 'KATIOFI']
+    
+    for nom in sites:
+        Site.objects.get_or_create(nom=nom)
 
 def reverse_load_sites(apps, schema_editor):
     Site = apps.get_model('accounts', 'Site')
-    site_names = ['LARABIA', 'MONGAHA', 'KATIOFI']
-    Site.objects.filter(nom__in=site_names).delete()    
+    Site.objects.filter(nom__in=['LARABIA', 'MONGAHA', 'KATIOFI']).delete()
 
 
 class Migration(migrations.Migration):
