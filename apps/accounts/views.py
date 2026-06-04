@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 from .serializers import LoginSerializer, AuthUserSerializer
+from datetime import datetime, timezone
 
 
 class LoginView(APIView):
@@ -28,13 +29,13 @@ class RefreshView(APIView):
         try:
             refresh = RefreshToken(token)
             access  = refresh.access_token
+            exp_dt  = datetime.fromtimestamp(access['exp'], tz=timezone.utc)
             return Response({
                 'accessToken':    str(access),
-                'expirationTime': access['exp'],
+                'expirationTime': exp_dt.isoformat(),
             })
         except TokenError as e:
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
-
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

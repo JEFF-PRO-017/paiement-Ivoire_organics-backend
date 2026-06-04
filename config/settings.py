@@ -54,17 +54,41 @@ TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates',
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ── Base de données ───────────────────────────────────────────────────────────
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME':   config('DB_NAME', default='paiement_db'),
-        'USER':   config('DB_USER', default='root'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST':   config('DB_HOST', default='localhost'),
-        'PORT':   config('DB_PORT', default='3306'),
-        'OPTIONS': {'charset': 'utf8mb4'},
+db_engine = config('DB_ENGINE',  default='django.db.backends.sqlite3')
+
+if db_engine == 'django.db.backends.mysql':
+    DATABASES = {
+        'default': {
+            'ENGINE': db_engine,
+            'NAME': config('DB_NAME'),
+            'USER': config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': config('DB_HOST'),
+            'PORT': config('DB_PORT', default='3306'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
     }
-}
+else:
+    # SQLite (default)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / config('DB_NAME', default='db.sqlite3'),
+        }
+    }  
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME':   config('DB_NAME', default='paiement_db'),
+#         'USER':   config('DB_USER', default='root'),
+#         'PASSWORD': config('DB_PASSWORD', default=''),
+#         'HOST':   config('DB_HOST', default='localhost'),
+#         'PORT':   config('DB_PORT', default='3306'),
+#         'OPTIONS': {'charset': 'utf8mb4'},
+#     }
+# }
 
 # ── DRF ───────────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {

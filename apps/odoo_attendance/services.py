@@ -81,7 +81,7 @@ def save_attendances(attendances: list):
             errors += 1
             continue
 
-        Attendance.objects.create(
+        Attendance.objects.get_or_create(
             employee_id        = att["employee_id"][0],
             employee_name      = att["employee_id"][1] if att.get("employee_id") else "Inconnu",
             action             = att["action"],
