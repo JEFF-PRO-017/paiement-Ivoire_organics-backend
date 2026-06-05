@@ -6,7 +6,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG      = config('DEBUG', cast=bool, default=False)
-# ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='paiement-ivoire-organics-backend.onrender.com').split(',')
 
 # ── Apps ──────────────────────────────────────────────────────────────────────
@@ -17,11 +16,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # third-party
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    # local
     'apps.accounts',
     'apps.employes',
     'apps.portefeuilles',
@@ -33,14 +30,13 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ← doit être juste après SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ← ajoute ici
-
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -57,9 +53,20 @@ TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates',
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ── Base de données ───────────────────────────────────────────────────────────
-db_engine = config('DB_ENGINE',  default='django.db.backends.sqlite3')
+db_engine = config('DB_ENGINE', default='django.db.backends.sqlite3')
 
-if db_engine == 'django.db.backends.mysql':
+if db_engine == 'django.db.backends.postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME'),
+            'USER': config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': config('DB_HOST'),
+            'PORT': config('DB_PORT', default='5432'),
+        }
+    }
+elif db_engine == 'django.db.backends.mysql':
     DATABASES = {
         'default': {
             'ENGINE': db_engine,
@@ -74,24 +81,12 @@ if db_engine == 'django.db.backends.mysql':
         }
     }
 else:
-    # SQLite (default)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / config('DB_NAME', default='db.sqlite3'),
         }
-    }  
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME':   config('DB_NAME', default='paiement_db'),
-#         'USER':   config('DB_USER', default='root'),
-#         'PASSWORD': config('DB_PASSWORD', default=''),
-#         'HOST':   config('DB_HOST', default='localhost'),
-#         'PORT':   config('DB_PORT', default='3306'),
-#         'OPTIONS': {'charset': 'utf8mb4'},
-#     }
-# }
+    }
 
 # ── DRF ───────────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
@@ -125,6 +120,7 @@ USE_I18N = USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ── Odoo ──────────────────────────────────────────────────────────────────────
