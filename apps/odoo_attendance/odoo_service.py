@@ -20,6 +20,9 @@ DB       = settings.ODOO_DB
 USERNAME = settings.ODOO_USERNAME
 PASSWORD = settings.ODOO_PASSWORD
 
+DAYS_INITIAL_ATTENDANCE = settings.ODOO_DAYS_INITIAL_ATTENDANCE
+
+
 ODOO_DT_FORMAT  = "%Y-%m-%d %H:%M:%S"
 BATCH_SIZE      = 100       # Jamais limit=0 → XML tronqué garanti
 _uid_cache: int | None = None
@@ -189,7 +192,8 @@ def get_new_attendances(since_minutes=30) -> list:
     )
 
 
-def get_last_days_attendances(days=15) -> list:
+def get_last_days_attendances() -> list:
+    days =DAYS_INITIAL_ATTENDANCE if DAYS_INITIAL_ATTENDANCE is not None else 1
     since = _utc_since_days(days)
     logger.info(f"[Odoo] Présences des {days} derniers jours depuis {since} (paginé)...")
     records = _search_read_paginated(
