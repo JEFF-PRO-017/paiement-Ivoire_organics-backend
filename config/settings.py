@@ -128,6 +128,7 @@ ODOO_URL      = config('ODOO_URL',      default='https://erp.ivoireorganics.com'
 ODOO_DB       = config('ODOO_DB',       default='bio_ivoireorganics')
 ODOO_USERNAME = config('ODOO_USERNAME', default='api.attendance@ivoireorganics.com')
 ODOO_PASSWORD = config('ODOO_PASSWORD', default='api.attendance')
+ODOO_DAYS_INITIAL_ATTENDANCE = config('ODOO_DAYS_INITIAL_ATTENDANCE', cast=int, default=1)
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND       = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')

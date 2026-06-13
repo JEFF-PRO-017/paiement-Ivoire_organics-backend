@@ -193,7 +193,7 @@ def get_new_attendances(since_minutes=30) -> list:
 
 
 def get_last_days_attendances() -> list:
-    days =DAYS_INITIAL_ATTENDANCE if DAYS_INITIAL_ATTENDANCE is not None else 1
+    days =DAYS_INITIAL_ATTENDANCE
     since = _utc_since_days(days)
     logger.info(f"[Odoo] Présences des {days} derniers jours depuis {since} (paginé)...")
     records = _search_read_paginated(
