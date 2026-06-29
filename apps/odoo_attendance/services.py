@@ -24,13 +24,14 @@ def save_employees(employees: list):
     from apps.employes.models import Employe
     from apps.accounts.models import Site
 
+# TODO :DONNE LA POSSIBILITE DE RECEVOIR LES MISE A JOUR ET DE SE SCYNCHRINSE
     created = skipped = 0
 
     for emp in employees:
         if Employe.objects.filter(odoo_id=emp["id"]).exists():
             skipped += 1
             continue
-
+        
         nom_site = emp.get("work_location")
         if nom_site:
             site = Site.objects.filter(nom__iexact=nom_site).first()
@@ -45,6 +46,7 @@ def save_employees(employees: list):
             nom_complet  = emp["name"],
             departement  = emp["department_id"][1] if emp.get("department_id") else "",
             site_travail = nom_site or "",
+            mobile_phone = emp["mobile_phone"] or ""
         )
         created += 1
         logger.debug(f"[Services] Employé créé : {emp['name']} (odoo_id={emp['id']})")
@@ -69,7 +71,7 @@ def save_attendances(attendances: list):
             errors += 1
             continue
 
-        if Attendance.objects.filter(oodo_attendance_id=odoo_id).exists():
+        if Attendance.objects.filter(odoo_attendance_id=odoo_id).exists():
             skipped += 1
             continue
 
@@ -80,14 +82,15 @@ def save_attendances(attendances: list):
             logger.warning(f"[Services] Date invalide pour présence {odoo_id} : {e}")
             errors += 1
             continue
-
+        # TODO : UN Employe A DROIT A UNE PRESENCE PAR JOUR ,VERIFIER QUE LE USER SOIT ACTIF
         Attendance.objects.get_or_create(
             employee_id        = att["employee_id"][0],
             employee_name      = att["employee_id"][1] if att.get("employee_id") else "Inconnu",
             action             = att["action"],
             name               = aware_dt,
             worked_hours       = att.get("worked_hours"),
-            oodo_attendance_id = odoo_id,
+            odoo_attendance_id = odoo_id,
+            montant_journalier = 3000
         )
         created += 1
 

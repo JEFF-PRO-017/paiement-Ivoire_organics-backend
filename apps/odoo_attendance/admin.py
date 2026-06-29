@@ -8,7 +8,7 @@ class AttendanceAdmin(admin.ModelAdmin):
 
     # ── Colonnes ──────────────────────────────────────────────────────────────
     list_display = (
-        "oodo_attendance_id",
+        "odoo_attendance_id",
         "employee_name",
         "employee_id",
         "action_badge",
@@ -20,14 +20,14 @@ class AttendanceAdmin(admin.ModelAdmin):
     list_filter = ("action", "name")
 
     # ── Recherche ─────────────────────────────────────────────────────────────
-    search_fields = ("employee_id", "employee_name", "oodo_attendance_id")
+    search_fields = ("employee_id", "employee_name", "odoo_attendance_id")
 
     # ── Tri par défaut ────────────────────────────────────────────────────────
     ordering = ("-name",)
 
     # ── Lecture seule (données Odoo — ne pas modifier manuellement) ───────────
     readonly_fields = (
-        "oodo_attendance_id", "employee_id", "employee_name",
+        "odoo_attendance_id", "employee_id", "employee_name",
         "action", "name", "worked_hours",
     )
 

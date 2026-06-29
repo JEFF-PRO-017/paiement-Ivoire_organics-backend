@@ -1,4 +1,5 @@
 from django.db import models
+from phonenumber_field.modelfields import PhoneNumberField 
 
 
 class Employe(models.Model):
@@ -11,7 +12,12 @@ class Employe(models.Model):
     statut         = models.CharField(max_length=10, choices=STATUT_CHOICES, default='INACTIF')
     # Empreinte digitale (template binaire — rempli par le driver USB)
     empreinte_template = models.BinaryField(null=True, blank=True)
+    mobile_phone = PhoneNumberField(null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        if self.phone and not str(self.phone).startswith('+'):
+            self.phone = None
+        super().save(*args, **kwargs)
     class Meta:
         db_table = 'employes'
 

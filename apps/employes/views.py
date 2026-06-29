@@ -2,7 +2,7 @@ from rest_framework import generics, filters
 from .models import Employe
 from .serializers import EmployeSerializer
 
-
+# TODO A SUPPRIMER
 class EmployeListView(generics.ListAPIView):
     queryset         = Employe.objects.filter(statut='ACTIF').order_by('nom_complet')
     serializer_class = EmployeSerializer

@@ -2,10 +2,10 @@ from django.db import models
 from apps.employes.models import Employe
 
 
+# TODO A SUPPRIMER
 class Portefeuille(models.Model):
     STATUT_CHOICES = [
         ('EN_ATTENTE',   'En attente'),
-        # ('CONFIRME_RH',  'Confirmé RH'),
         ('PAYE',         'Payé'),
         ('IMPAYE',       'Impayé'),
     ]
