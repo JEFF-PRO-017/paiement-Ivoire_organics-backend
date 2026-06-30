@@ -21,4 +21,5 @@ urlpatterns = [
     path('portefeuilles/', include('apps.portefeuilles.urls')),
     path('paiement/',      include('apps.dashboard.urls')),
     path('empreinte/',     include('apps.empreinte.urls')),
+    path('odoo_attendance/',include('apps.odoo_attendance.urls'))
 ]

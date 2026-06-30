@@ -46,11 +46,11 @@ def _handle_odoo_error(context: str, e: Exception):
 
 def _task_load_all_employees():
     from .odoo_service import get_all_employees
-    from .services import save_employees
+    from .services import update_or_create_employees
     _dev(">>> Chargement initial des employés...")
     try:
         records = get_all_employees()
-        save_employees(records)
+        update_or_create_employees(records)
         logger.info(f"[Odoo] {len(records)} employés chargés au démarrage.")
         _dev(f"<<< {len(records)} employés chargés OK.")
     except Exception as e:
@@ -72,12 +72,12 @@ def _task_load_all_attendances():
 
 def _task_sync_new_employees():
     from .odoo_service import get_new_employees
-    from .services import save_employees
+    from .services import update_or_create_employees
     _dev(">>> Sync nouveaux employés...")
     try:
         records = get_new_employees(since_minutes=120)
         if records:
-            save_employees(records)
+            update_or_create_employees(records)
             logger.info(f"[Odoo] {len(records)} nouvel(s) employé(s) synchronisé(s).")
             _dev(f"<<< {len(records)} nouveaux employés synchronisés.")
         else:
@@ -112,8 +112,8 @@ def start():
         return
 
     _scheduler = BackgroundScheduler()
-    _scheduler.add_job(_task_load_all_employees,   "date",     id="init_employees")
-    _scheduler.add_job(_task_load_all_attendances, "date",     id="init_attendances")
+    # _scheduler.add_job(_task_load_all_employees,   "date",     id="init_employees")
+    # _scheduler.add_job(_task_load_all_attendances, "date",     id="init_attendances")
     _scheduler.add_job(_task_sync_new_employees,   "interval", minutes=120, id="sync_employees")
     _scheduler.add_job(_task_sync_new_attendances, "interval", minutes=120, id="sync_attendances")
     _scheduler.start()
