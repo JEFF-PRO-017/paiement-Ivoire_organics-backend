@@ -28,11 +28,7 @@ class AuthUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = CustomUser
-        fields = [
-            'username', 'first_name', 'last_name', 'email',
-            'email_verified', 'role', 'sites',
-            'accessToken', 'refreshToken', 'expirationTime',
-        ]
+        fields = '__all__'
 
     def get_accessToken(self, obj):
         return str(self._tokens(obj).access_token)

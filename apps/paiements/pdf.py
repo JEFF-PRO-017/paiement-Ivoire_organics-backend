@@ -20,7 +20,7 @@ def generer_pdf_historique(lignes) -> bytes:
             l.employe.departement,
             str(l.nombre_jours),
             f"{l.montant_total:,.0f}",
-            l.portefeuille.statut if l.portefeuille else '—',
+            '—',
         ]
         for l in lignes
     ]

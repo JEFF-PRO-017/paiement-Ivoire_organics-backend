@@ -8,10 +8,8 @@ import logging
 from datetime import datetime, timezone 
 from django.conf import settings
 from django.utils import timezone
-from apps.employes.models import Employe
 from apps.accounts.models import Site
-from apps.employes.models import Employe
-from apps.odoo_attendance.models import Attendance
+from apps.odoo_attendance.models import Attendance, Employe
 
 logger = logging.getLogger(__name__)
 IS_DEV = settings.DEBUG
@@ -93,16 +91,15 @@ def save_attendances(attendances: list):
         # un employé ne peut avoir qu'une seule présence par jour
         if Attendance.objects.filter(
             employee_id=odoo_emp_id,
-            name__date=aware_dt
+            date_work__date=aware_dt
         ).exists():
             skipped += 1
             continue
 
         Attendance.objects.create(
-            employee_id        = odoo_emp_id,
-            employee_name      = att["employee_id"][1] if att.get("employee_id") else "Inconnu",
+            employe        = employe,
             action             = att["action"],
-            name               = aware_dt,
+            date_work          = aware_dt,
             worked_hours       = att.get("worked_hours"),
             odoo_attendance_id = odoo_id,
             montant_journalier = 3000

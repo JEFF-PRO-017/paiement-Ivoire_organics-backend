@@ -21,11 +21,8 @@ INSTALLED_APPS = [
     'phonenumber_field',
     'corsheaders',
     'apps.accounts',
-    'apps.employes',
-    'apps.portefeuilles',
-    'apps.dashboard',
-    'apps.empreinte',
     'apps.odoo_attendance',
+    'apps.paiements',
 ]
 
 MIDDLEWARE = [

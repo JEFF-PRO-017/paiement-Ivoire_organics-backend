@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Attendance
+from .models import Attendance, Employe
 
 
 @admin.register(Attendance)
@@ -9,26 +9,25 @@ class AttendanceAdmin(admin.ModelAdmin):
     # ── Colonnes ──────────────────────────────────────────────────────────────
     list_display = (
         "odoo_attendance_id",
-        "employee_name",
-        "employee_id",
+        "employe",
         "action_badge",
-        "name",
+        "date_work",
         "worked_hours_display",
     )
 
     # ── Filtres latéraux ──────────────────────────────────────────────────────
-    list_filter = ("action", "name")
+    list_filter = ("action", "date_work")
 
     # ── Recherche ─────────────────────────────────────────────────────────────
-    search_fields = ("employee_id", "employee_name", "odoo_attendance_id")
+    search_fields = ("employe", "odoo_attendance_id")
 
     # ── Tri par défaut ────────────────────────────────────────────────────────
-    ordering = ("-name",)
+    ordering = ("-date_work",)
 
     # ── Lecture seule (données Odoo — ne pas modifier manuellement) ───────────
     readonly_fields = (
-        "odoo_attendance_id", "employee_id", "employee_name",
-        "action", "name", "worked_hours",
+        "odoo_attendance_id", "employe",
+        "action", "date_work", "worked_hours",
     )
 
     # ── Pagination ────────────────────────────────────────────────────────────
@@ -53,3 +52,9 @@ class AttendanceAdmin(admin.ModelAdmin):
         return format_html(
             '<span style="color:{}">{}</span>', color, heures
         )
+
+@admin.register(Employe)
+class EmployeAdmin(admin.ModelAdmin):
+    list_display  = ('odoo_id', 'nom_complet', 'departement', 'site_travail', 'statut')
+    list_filter   = ('statut', 'departement')
+    search_fields = ('nom_complet', 'odoo_id')
