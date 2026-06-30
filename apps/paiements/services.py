@@ -53,9 +53,14 @@ def create_attendance_manuel(data: dict) -> Attendance:
 
     if data.get('action') not in ['sign_in', 'sign_out']:
         raise ValueError("action doit être 'sign_in' ou 'sign_out'.")
+    
+    odoo_emp_id = data['employee_id']
+    employe = Employe.objects.filter(odoo_id=odoo_emp_id).first()
+    if not employe:
+        raise ValueError("cet employe n'existe pas")
 
     return Attendance.objects.create(
-        employee_id              = data['employee_id'],
+        employe                  = employe,
         action                   = data['action'],
         date_work                     = data['date_work'],
         worked_hours             = data.get('worked_hours'),
@@ -66,12 +71,10 @@ def create_attendance_manuel(data: dict) -> Attendance:
 
 
 @staticmethod
-def get_attendances_par_employe(statut_paiement=None, statut_attendance=None) -> list:
+def get_attendances_par_employe(qs,statut_paiement=None, statut_attendance=None) -> list:
     """
     Retourne les attendances groupées par employé.
     """
-    qs = Attendance.objects.select_related('employe').all()
-
     if statut_paiement:
         qs = qs.filter(statut_paiement=statut_paiement)
     if statut_attendance:
@@ -86,21 +89,29 @@ def get_attendances_par_employe(statut_paiement=None, statut_attendance=None) ->
     return list(grouped.values())
 
 
-@staticmethod
-def get_attendance_detail(pk: int) -> Attendance:
+def get_attendance_detail(pk: int, site: str = None) -> Attendance:
+    """Récupère une attendance par son id, en vérifiant qu'elle appartient bien au site demandé."""
     try:
-        return Attendance.objects.get(pk=pk)
+        attendance = Attendance.objects.select_related('employe').get(pk=pk)
     except Attendance.DoesNotExist:
         raise ValueError(f"Attendance {pk} introuvable.")
-    
 
-def appliquer_filtres_historique(request):
-    """Construit le queryset d'historique de paiement selon les filtres en query params."""
+    if site and attendance.employe.site_travail != site:
+        raise ValueError(f"Attendance {pk} introuvable.")  # on cache l'existence plutôt qu'un 403
+
+    return attendance
+
+
+def appliquer_filtres_historique(request, site: str = None):
+    """Construit le queryset d'historique de paiement selon les filtres en query params + le site."""
     qs = (
         HistoriquePaiement.objects
         .select_related('employe')
         .order_by('-date_paiement')
     )
+    if site:
+        qs = qs.filter(employe__site_travail=site)
+
     if search := request.query_params.get('search'):
         qs = qs.filter(employe__nom_complet__icontains=search)
 
@@ -117,17 +128,15 @@ def appliquer_filtres_historique(request):
     return qs
 
 
-def get_historique_employe(employe_id):
-    """Retourne le queryset d'historique de paiement d'un employé donné."""
-    return HistoriquePaiement.objects.filter(employe_id=employe_id)
+def get_stats_globales(qs):
+    """
+    Calcule les compteurs globaux du dashboard.
+    qs : queryset Attendance déjà filtré par site (et autres filtres éventuels).
+    """
+    nombre_employes = Employe.objects.filter(statut='ACTIF', site_travail__in=qs.values('employe__site_travail')).distinct().count()
 
-
-def get_stats_globales():
-    """Calcule les compteurs globaux du dashboard."""
-    nombre_employes = Employe.objects.filter(statut='ACTIF').count()
-
-    attentes = Attendance.objects.filter(statut_paiement__in=['EN_ATTENTE', 'IMPAYE'])
-    impayes  = Attendance.objects.filter(statut_paiement='IMPAYE')
+    attentes = qs.filter(statut_paiement='EN_ATTENTE')
+    impayes  = qs.filter(statut_paiement='IMPAYE')
 
     somme_attente = attentes.aggregate(total=Sum('montant_journalier'))['total'] or 0
     somme_impaye  = impayes.aggregate(total=Sum('montant_journalier'))['total'] or 0
@@ -139,11 +148,14 @@ def get_stats_globales():
     }
 
 
-def get_jours_cumules_impayes():
-    """Retourne la liste triée des dates distinctes d'attendances impayées."""
-    dates = Attendance.objects.filter(statut_paiement='IMPAYE').values_list('date_work', flat=True)
-    return sorted(set(dates))
+def get_jours_cumules_impayes(site: str = None):
+    """Retourne la liste triée des dates distinctes d'attendances impayées, filtrée par site."""
+    qs = Attendance.objects.filter(statut_paiement='IMPAYE')
+    if site:
+        qs = qs.filter(employe__site_travail=site)
 
+    dates = qs.values_list('date_work', flat=True)
+    return sorted(set(dates))
 
 def get_historique_stats(qs):
     """Calcule les stats agrégées sur un queryset d'historique (avant pagination)."""
@@ -168,3 +180,7 @@ def get_historique_par_jour(qs, limit):
         qs.values('date_paiement')[:limit]
         .annotate(total=Sum('montant_total'), count=Count('id'))
     )
+
+def get_historique_employe(employe_id):
+    """Retourne le queryset d'historique de paiement d'un employé donné."""
+    return HistoriquePaiement.objects.filter(employe_id=employe_id)

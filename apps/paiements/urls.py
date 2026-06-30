@@ -9,6 +9,7 @@ urlpatterns = [
     path('historique/employe/',        HistoriqueEmployeView.as_view(),         name='historique-employe'),
     path('attendances/update-statut/', UpdateStatutAttendanceView.as_view(),    name='attendance-update-statut'),
     path('attendances/creer-manuel/',  CreateAttendanceManuelView.as_view(),    name='attendance-creer-manuel'),
+#    .............controlee le site
     path('attendances/',               AttendanceListView.as_view(),            name='attendance-list'),
     path('attendances/<int:pk>/',      AttendanceDetailView.as_view(),          name='attendance-detail'),
     path('stats/',                     StatsView.as_view(),                     name='stats'),

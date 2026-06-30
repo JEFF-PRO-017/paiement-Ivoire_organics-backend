@@ -1,5 +1,7 @@
 from django.http import HttpResponse
 
+from apps.odoo_attendance.models import Attendance
+from utils.decorators import avec_parametres
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -22,8 +24,6 @@ from .services import (
     get_stats_globales, get_jours_cumules_impayes,
     get_historique_stats, get_historique_par_jour,
 )
-
-# IsAuthenticated est déjà la permission par défaut (voir settings.py REST_FRAMEWORK).
 
 
 # ── Helper interne : pagine un queryset/liste avec StandardPagination ───────
@@ -114,9 +114,13 @@ class CreateAttendanceManuelView(APIView):
 
 class AttendanceListView(APIView):
     """GET /attendances/?statut_paiement=PAYE&statut_attendance=ARCHIVE — liste paginée."""
-
+    @avec_parametres
     def get(self, request):
-        data = get_attendances_par_employe(
+        site = request.parametres['site']
+        if not site:
+            return _paginate(request, [], AttendanceParEmployeSerializer)
+        qs = Attendance.objects.select_related('employe').filter(employe__site_travail=site)
+        data = get_attendances_par_employe(qs,
             statut_paiement=request.query_params.get('statut_paiement'),
             statut_attendance=request.query_params.get('statut_attendance'),
         )
@@ -124,13 +128,17 @@ class AttendanceListView(APIView):
 
 
 # ── Détail d'une attendance ─────────────────────────────────────────────────
-
 class AttendanceDetailView(APIView):
-    """GET /attendances/<pk>/ — détail d'une attendance précise."""
+    """GET /attendances/<pk>/ — détail d'une attendance précise (du site courant)."""
 
+    @avec_parametres
     def get(self, request, pk):
+        site = request.parametres['site']
+        if not site:
+            return Response({'error': 'Site introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            attendance = get_attendance_detail(pk)
+            attendance = get_attendance_detail(pk, site=site)
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
@@ -138,34 +146,48 @@ class AttendanceDetailView(APIView):
 
 
 # ── Statistiques globales (pas de pagination — réponse unique) ──────────────
-
 class StatsView(APIView):
-    """GET /stats/ — compteurs globaux pour le dashboard."""
+    """GET /stats/ — compteurs globaux pour le dashboard (filtrés par site)."""
 
+    @avec_parametres
     def get(self, request):
-        output = StatsOutputDTO(get_stats_globales())
+        site = request.parametres['site']
+        if not site:
+            return Response({'error': 'Site introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = Attendance.objects.select_related('employe').filter(employe__site_travail=site)
+        output = StatsOutputDTO(get_stats_globales(qs, site=site))
         return Response(output.data)
 
 
 # ── Jours cumulés impayés ────────────────────────────────────────────────────
 
 class JoursCumulesView(APIView):
-    """GET /jours-cumules/ — liste paginée des dates distinctes d'attendances impayées."""
+    """GET /jours-cumules/ — liste paginée des dates distinctes d'attendances impayées (du site)."""
 
+    @avec_parametres
     def get(self, request):
-        dates     = get_jours_cumules_impayes()
+        site = request.parametres['site']
+        if not site:
+            return _paginate(request, [], None)  # pas de serializer nécessaire pour une liste de dates
+
+        dates     = get_jours_cumules_impayes(site=site)
         paginator = StandardPagination()
         page      = paginator.paginate_queryset(dates, request)
         return paginator.get_paginated_response(page)
 
 
 # ── Historique paginé avec stats ─────────────────────────────────────────────
-
 class HistoriqueView(APIView):
-    """GET /historique/?page=1&search=...&dept=...&date_debut=...&date_fin=..."""
+    """GET /historique/?page=1&search=...&dept=...&date_debut=...&date_fin=... — filtré par site."""
 
+    @avec_parametres
     def get(self, request):
-        qs    = appliquer_filtres_historique(request)
+        site = request.parametres['site']
+        if not site:
+            return Response({'error': 'Site introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs    = appliquer_filtres_historique(request, site=site)
         stats = get_historique_stats(qs)  # calculées AVANT pagination, sur tout le résultat filtré
 
         paginator = StandardPagination()
@@ -173,17 +195,22 @@ class HistoriqueView(APIView):
         data      = HistoriquePaiementSerializer(page, many=True).data
 
         response = paginator.get_paginated_response(data)
-        response.data['stats'] = stats  # on ajoute les stats à la réponse paginée
+        response.data['stats'] = stats
         return response
 
 
 # ── Historique groupé par jour de paiement ───────────────────────────────────
 
 class HistoriqueParJourPaiementView(APIView):
-    """GET /historique/par-jour/?limit=4 — historique regroupé par date de paiement."""
+    """GET /historique/par-jour/?limit=4 — historique regroupé par date de paiement (du site)."""
 
+    @avec_parametres
     def get(self, request):
-        qs    = appliquer_filtres_historique(request)
+        site = request.parametres['site']
+        if not site:
+            return Response([], status=status.HTTP_200_OK)
+
+        qs    = appliquer_filtres_historique(request, site=site)
         limit = int(request.query_params.get('limit', 4))
         data  = get_historique_par_jour(qs, limit)
         return Response(list(data))
@@ -192,10 +219,16 @@ class HistoriqueParJourPaiementView(APIView):
 # ── Export PDF de l'historique (pas de pagination — fichier binaire) ────────
 
 class ExportPdfHistoriqueView(APIView):
-    """GET /historique/export-pdf/ — génère et renvoie un PDF de l'historique filtré."""
+    """GET /historique/export-pdf/ — génère et renvoie un PDF de l'historique filtré (du site)."""
 
+    @avec_parametres
     def get(self, request):
-        pdf = generer_pdf_historique(appliquer_filtres_historique(request))
+        site = request.parametres['site']
+        if not site:
+            return Response({'error': 'Site introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs  = appliquer_filtres_historique(request, site=site)
+        pdf = generer_pdf_historique(qs)
 
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="historique-paiements.pdf"'

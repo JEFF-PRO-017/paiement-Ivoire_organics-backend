@@ -18,5 +18,6 @@ urlpatterns = [
     # ── APIs ──────────────────────────────────────────────────────────────────
     path('auth/',          include('apps.accounts.urls')),
     path('paiements/',      include('apps.paiements.urls')),
-    path('odoo_attendance/',include('apps.odoo_attendance.urls'))
+    path('odoo_attendance/',include('apps.odoo_attendance.urls')),
+    path('front_settings/',include('apps.front_settings.urls'))
 ]

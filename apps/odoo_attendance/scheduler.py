@@ -118,4 +118,4 @@ def start():
     _scheduler.add_job(_task_sync_new_attendances, "interval", minutes=120, id="sync_attendances")
     _scheduler.start()
     logger.info("[Odoo] Scheduler démarré.")
-    _dev("Scheduler APScheduler démarré — 4 jobs actifs.")
+    _dev("Scheduler APScheduler démarré — 2 jobs actifs.")

@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.odoo_attendance',
     'apps.paiements',
+    'apps.front_settings',
 ]
 
 MIDDLEWARE = [
