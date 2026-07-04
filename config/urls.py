@@ -16,8 +16,8 @@ urlpatterns = [
          auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 
     # ── APIs ──────────────────────────────────────────────────────────────────
-    path('auth/',          include('apps.accounts.urls')),
-    path('paiements/',      include('apps.paiements.urls')),
-    path('odoo_attendance/',include('apps.odoo_attendance.urls')),
-    path('front_settings/',include('apps.front_settings.urls'))
+    path('api/auth/',          include('apps.accounts.urls')),
+    path('api/paiements/',      include('apps.paiements.urls')),
+    path('api/odoo_attendance/',include('apps.odoo_attendance.urls')),
+    path('api/front_settings/',include('apps.front_settings.urls'))
 ]

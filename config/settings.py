@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'phonenumber_field',
     'corsheaders',
+    'rest_framework_simplejwt.token_blacklist',
     'apps.accounts',
     'apps.odoo_attendance',
     'apps.paiements',
@@ -97,6 +98,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'utils.pagination.StandardPagination',
     'PAGE_SIZE': 5,
+    'DEFAULT_THROTTLE_RATES': {'anon': '5/min'},
 }
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
@@ -104,7 +106,7 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=config('ACCESS_TOKEN_LIFETIME_MINUTES', cast=int, default=60)),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=config('REFRESH_TOKEN_LIFETIME_DAYS', cast=int, default=7)),
     'ROTATE_REFRESH_TOKENS':  True,
-    'BLACKLIST_AFTER_ROTATION': False,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
