@@ -1,9 +1,12 @@
 from apps.odoo_attendance.models import Attendance, Employe
+from apps.odoo_attendance.services import get_montant_journalier
 from .models import  HistoriquePaiement
 from django.db.models import Sum, Avg, Count
 from apps.odoo_attendance.models import Attendance, Employe
 
-
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError
+from rest_framework.exceptions import ValidationError as DRFValidationError
 
 def update_statut_bulk(ids: list, statut_paiement: str = None, statut_attendance: str = None) -> dict:
         """
@@ -54,12 +57,12 @@ def create_attendance_manuel(data: dict) -> Attendance:
     if data.get('action') not in ['sign_in', 'sign_out']:
         raise ValueError("action doit être 'sign_in' ou 'sign_out'.")
     
-    odoo_emp_id = data['employee_id']
-    employe = Employe.objects.filter(odoo_id=odoo_emp_id).first()
+    employee_id = data['employee_id']
+    employe = Employe.objects.filter(id=employee_id).first()
     if not employe:
         raise ValueError("cet employe n'existe pas")
 
-    return Attendance.objects.create(
+    attendance = Attendance(
         employe                  = employe,
         action                   = data['action'],
         date_work                     = data['date_work'],
@@ -67,8 +70,20 @@ def create_attendance_manuel(data: dict) -> Attendance:
         date_validation_paiement = data.get('date_validation_paiement'),
         statut_paiement          = data.get('statut_paiement', 'EN_ATTENTE'),
         statut_attendance        = 'CREATION_MANUELLE',  # ← forcé
+        montant_journalier       = get_montant_journalier(data['date_work'].date())
     )
-
+    try:
+        attendance.full_clean()
+        attendance.save()
+    except DjangoValidationError as e:
+        raise DRFValidationError(e.message_dict if hasattr(e, "message_dict") else e.messages)
+    except IntegrityError:
+        # Filet de sécurité si jamais une race condition contourne full_clean()
+        raise DRFValidationError({
+            "code": "attendance_deja_existante",
+            "detail": "Cet employé a déjà une attendance enregistrée pour cette date."
+        })
+    return attendance
 
 @staticmethod
 def get_attendances_par_employe(qs,statut_paiement=None, statut_attendance=None) -> list:

@@ -30,6 +30,7 @@ class RefreshView(APIView):
 
     def post(self, request):
         token = request.data.get('refreshToken')
+        print('token',token)
         if not token:
             return Response({'detail': 'refreshToken requis'}, status=status.HTTP_400_BAD_REQUEST)
         try:

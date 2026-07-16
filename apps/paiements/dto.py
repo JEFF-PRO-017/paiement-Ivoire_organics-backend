@@ -12,7 +12,7 @@ class UpdateStatutInputDTO(serializers.Serializer):
 
 class CreateAttendanceManuelInputDTO(serializers.Serializer):
     """Données attendues pour créer une attendance manuellement."""
-    employee_id     = serializers.CharField()
+    employee_id     = serializers.DecimalField(max_digits=10, decimal_places=0)
     action          = serializers.CharField()
     date_work            = serializers.DateTimeField()
     worked_hours    = serializers.FloatField(required=False, allow_null=True)
@@ -32,7 +32,6 @@ class CreateAttendanceOutputDTO(serializers.Serializer):
     """Réponse après création manuelle d'une attendance."""
     message           = serializers.CharField()
     id                = serializers.IntegerField()
-    employee_id       = serializers.CharField()
     action            = serializers.CharField()
     statut_attendance = serializers.CharField()
 

@@ -15,8 +15,8 @@ class Employe(models.Model):
     mobile_phone = PhoneNumberField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        if self.phone and not str(self.phone).startswith('+'):
-            self.phone = None
+        if self.mobile_phone and not str(self.mobile_phone).startswith('+'):
+            self.mobile_phone = None
         super().save(*args, **kwargs)
     class Meta:
         db_table = 'employes'
@@ -45,18 +45,50 @@ class Attendance(models.Model):
 
     employe                  = models.ForeignKey(Employe, on_delete=models.PROTECT)
     action                   = models.CharField(max_length=10, choices=ACTION_CHOICES)
-    date_work                = models.DateTimeField()                                        # timestamp de l'action
-    worked_hours             = models.FloatField(null=True, blank=True)                      # durée du shift
+    date_work                = models.DateTimeField()
+    date                     = models.DateField(editable=False)
+    worked_hours             = models.FloatField(null=True, blank=True)
     odoo_attendance_id       = models.CharField(max_length=50, unique=True, null=True, blank=True)
     date_validation_paiement = models.DateTimeField(null=True, blank=True)
     statut_paiement          = models.CharField(max_length=15, choices=STATUT_CHOICES, default='EN_ATTENTE')
-    statut_attendance        = models.CharField(max_length=20, choices=STATUT_A, default='CREATION_AUTO')  # ← virgule supprimée
+    statut_attendance        = models.CharField(max_length=20, choices=STATUT_A, default='CREATION_AUTO')
     montant_journalier       = models.DecimalField(max_digits=12, decimal_places=2)
+
     class Meta:
         db_table = 'odoo_attendance'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['employe', 'date'],
+                name='unique_employe_par_jour',
+                violation_error_message="Cet employé a déjà une attendance enregistrée pour cette date.",
+                violation_error_code='attendance_deja_existante',
+            )
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.date_work:
+            self.date = self.date_work.date()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Attendance {self.odoo_attendance_id} - {self.action} at {self.name}"
+        return f"Attendance {self.odoo_attendance_id} - {self.action} at {self.date_work}"
+
+
+class TarifJournalier(models.Model):
+    montant  = models.DecimalField(max_digits=12, decimal_places=2,default=3000.0)
+
+    #date a partir de quel le montant s'applique
+    date_effet = models.DateField(unique=True)
+
+    class Meta:
+        db_table = 'tarif_journaliers'
+        ordering = ['-date_effet']
+        verbose_name = "Tarif Journalier"
+        verbose_name_plural = "Tarif Journaliers"
+
+    def __str__(self):
+        return f"Tarif Journalier: {self.montant} à partir de {self.date_effet}"
+
     
 
 

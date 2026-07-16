@@ -57,12 +57,11 @@ def _task_load_all_employees():
         _handle_odoo_error("Chargement employés", e)
 
 
-def _task_load_all_attendances():
+def _task_load_all_attendances(days_initial_attendance=1):
     from .odoo_service import get_last_days_attendances
     from .services import save_attendances
-    _dev(">>> Chargement initial des présences (15 derniers jours)...")
     try:
-        records = get_last_days_attendances()
+        records = get_last_days_attendances(days_initial_attendance)
         save_attendances(records)
         logger.info(f"[Odoo] {len(records)} présences chargées au démarrage.")
         _dev(f"<<< {len(records)} présences chargées OK.")

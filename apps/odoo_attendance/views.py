@@ -21,8 +21,12 @@ def load_all_employees(request):
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
 def load_all_attendances(request):
+    days = request.data.get("days_initial_attendance", 1)
+    # on s'assure que days est un entier positif
+    if not isinstance(days, int) or days <= 0:
+        return Response({"error": "Le nombre de jours doit être un entier positif."}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        _task_load_all_attendances()  # on appelle la fonction qui charge les présences
+        _task_load_all_attendances(days_initial_attendance=days)
         return Response({"message": "Présences chargées avec succès."}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
