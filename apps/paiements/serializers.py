@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from apps.odoo_attendance.models import Attendance, Employe
-from .models import HistoriquePaiement
+from .models import Paiement
 
 
 class EmployeSerializer(serializers.ModelSerializer):
@@ -23,8 +23,8 @@ class AttendanceParEmployeSerializer(serializers.Serializer):
     attendance_list = AttendanceSerializer(many=True)
 
 
-class HistoriquePaiementSerializer(serializers.ModelSerializer):
-    """Sérialise une ligne d'historique de paiement."""
+class PaiementSerializer(serializers.ModelSerializer):
+    """Sérialise un paiement."""
     class Meta:
-        model  = HistoriquePaiement
+        model  = Paiement
         fields = '__all__'

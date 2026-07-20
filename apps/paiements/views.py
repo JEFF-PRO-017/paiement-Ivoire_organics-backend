@@ -14,7 +14,7 @@ from .dto import (
     StatsOutputDTO, UpdateStatutInputDTO, UpdateStatutOutputDTO,
 )
 from .serializers import (
-    AttendanceParEmployeSerializer, AttendanceSerializer, HistoriquePaiementSerializer,
+    AttendanceParEmployeSerializer, AttendanceSerializer, PaiementSerializer,
 )
 from .services import (
     appliquer_filtres_historique, create_attendance_manuel, get_attendance_detail,
@@ -32,6 +32,10 @@ class AttendanceView(AvecSiteMixin, ListAPIView):
     POST /attendances/
     Body: { "employee_id": "EMP001", "action": "sign_in", ... }
     Crée une attendance manuellement.
+
+    PATCH /attendances/
+    Body: { "ids": [1, 2, 3], "statut_paiement": "PAYE", "statut_attendance": "ARCHIVE" }
+    Met à jour le statut de plusieurs attendances en une fois.
     """
     serializer_class = AttendanceParEmployeSerializer
     site_requis = False  # pas de site -> liste vide au lieu d'une erreur 400
@@ -62,30 +66,7 @@ class AttendanceView(AvecSiteMixin, ListAPIView):
             'statut_attendance': attendance.statut_attendance,
         })
         return Response(output.data, status=status.HTTP_201_CREATED)
-
-
-class AttendanceDetailView(APIView):
-    """
-    GET /attendances/<pk>/
-    Détail d'une attendance précise (doit appartenir au site courant).
-    """
-
-    @avec_site()
-    def get(self, request, pk, site):
-        try:
-            attendance = get_attendance_detail(pk, site=site)
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        return Response(AttendanceSerializer(attendance).data)
-
-
-class UpdateStatutAttendanceView(APIView):
-    """
-    PATCH /attendances/update-statut/
-    Body: { "ids": [1, 2, 3], "statut_paiement": "PAYE", "statut_attendance": "ARCHIVE" }
-    Met à jour le statut de plusieurs attendances en une fois.
-    """
-
+    
     def patch(self, request):
         input_dto = UpdateStatutInputDTO(data=request.data)
         input_dto.is_valid(raise_exception=True)
@@ -108,12 +89,26 @@ class UpdateStatutAttendanceView(APIView):
         return Response(output.data)
 
 
+class AttendanceDetailView(APIView):
+    """
+    GET /attendances/<pk>/
+    Détail d'une attendance précise (doit appartenir au site courant).
+    """
+
+    @avec_site()
+    def get(self, request, pk, site):
+        try:
+            attendance = get_attendance_detail(pk, site=site)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        return Response(AttendanceSerializer(attendance).data)
+
 class HistoriqueEmployeView(ListAPIView):
     """
     GET /employe/?employe_id=123
     Historique paginé des paiements d'un employé précis (tous sites).
     """
-    serializer_class = HistoriquePaiementSerializer
+    serializer_class =PaiementSerializer
 
     def get_queryset(self):
         employe_id = self.request.query_params.get('employe_id')
@@ -128,7 +123,7 @@ class HistoriqueView(AvecSiteMixin, ListAPIView):
     Historique paginé des paiements du site courant, avec stats globales
     calculées sur tout le résultat filtré (pas juste la page affichée).
     """
-    serializer_class = HistoriquePaiementSerializer
+    serializer_class = PaiementSerializer
 
     def get_queryset(self):
         return appliquer_filtres_historique(self.request, site=self.site)
@@ -177,14 +172,12 @@ class StatsView(APIView):
     @avec_site()
     def get(self, request, site):
         qs = Attendance.objects.select_related('employe').filter(employe__site_travail=site)
-        return Response(StatsOutputDTO(get_stats_globales(qs, site=site)).data)
+        return Response(StatsOutputDTO(get_stats_globales(qs)).data)
 
 
 class JoursCumulesView(AvecSiteMixin, ListAPIView):
     """
     GET /jours-cumules/
-    Liste paginée des dates distinctes d'attendances impayées du site courant.
-    Pas de serializer : ce sont juste des dates brutes.
     """
     site_requis = False  # pas de site -> liste vide au lieu d'une erreur 400
 
@@ -192,7 +185,4 @@ class JoursCumulesView(AvecSiteMixin, ListAPIView):
         return get_jours_cumules_impayes(site=self.site) if self.site else []
 
     def list(self, request, *args, **kwargs):
-        page = self.paginate_queryset(self.get_queryset())
-        if page is not None:
-            return self.get_paginated_response(page)
         return Response(self.get_queryset())

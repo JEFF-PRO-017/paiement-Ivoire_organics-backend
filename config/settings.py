@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'apps.odoo_attendance',
     'apps.paiements',
     'apps.front_settings',
+    'apps.notch_pay',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +140,13 @@ EMAIL_USE_TLS       = config('EMAIL_USE_TLS',  cast=bool, default=True)
 EMAIL_HOST_USER     = config('EMAIL_HOST_USER',     default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL  = config('DEFAULT_FROM_EMAIL',  default=EMAIL_HOST_USER)
+
+#___ Cinet Pay 
+# CINETPAY_API_KEY    = config('CINETPAY_API_KEY')
+# CINETPAY_API_PASSWORD = config('CINETPAY_API_PASSWORD')
+# CINETPAY_NOTIFY_URL = config('CINETPAY_NOTIFY_URL')
+
+
+NOTCHPAY_API_KEY = config('NOTCHPAY_API_KEY')
+NOTCHPAY_GRANT_KEY = config('NOTCHPAY_GRANT_KEY')
+NOTCHPAY_WEBHOOK_SECRET = config('NOTCHPAY_WEBHOOK_SECRET')

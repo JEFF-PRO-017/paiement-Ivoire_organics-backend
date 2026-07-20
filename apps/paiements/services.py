@@ -1,6 +1,6 @@
 from apps.odoo_attendance.models import Attendance, Employe
 from apps.odoo_attendance.services import get_montant_journalier
-from .models import  HistoriquePaiement
+from .models import   Paiement
 from django.db.models import Sum, Avg, Count
 from apps.odoo_attendance.models import Attendance, Employe
 
@@ -120,7 +120,7 @@ def get_attendance_detail(pk: int, site: str = None) -> Attendance:
 def appliquer_filtres_historique(request, site: str = None):
     """Construit le queryset d'historique de paiement selon les filtres en query params + le site."""
     qs = (
-        HistoriquePaiement.objects
+        Paiement.objects
         .select_related('employe')
         .order_by('-date_paiement')
     )
@@ -198,4 +198,4 @@ def get_historique_par_jour(qs, limit):
 
 def get_historique_employe(employe_id):
     """Retourne le queryset d'historique de paiement d'un employé donné."""
-    return HistoriquePaiement.objects.filter(employe_id=employe_id)
+    return Paiement.objects.filter(employe_id=employe_id)
