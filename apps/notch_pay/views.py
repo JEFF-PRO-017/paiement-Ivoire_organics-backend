@@ -1,9 +1,8 @@
 from apps.paiements.models import ConfigurationPaiement
 from apps.notch_pay.services.notchpay_service import consulter_solde
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 
+from core.response import ApiResponse
 from .serializers import ConfigurationPaiementSerializer
 from .services.paiement_service import (
     creer_paiements_en_attente,
@@ -13,7 +12,6 @@ from .services.paiement_service import (
 
 
 def _resume(paiements):
-    """Factorise le résumé retourné par les 3 vues de déclenchement de paiement."""
     return {
         'total': len(paiements),
         'reussis': sum(1 for p in paiements if p.statut == 'SUCCESS'),
@@ -23,21 +21,29 @@ def _resume(paiements):
 
 
 class ConfigurationPaiementView(APIView):
-    """GET: état actuel + jours restants. POST {mode}: bascule MANUEL <-> AUTOMATIQUE."""
+    """GET: état actuel. POST {mode}: bascule MANUEL <-> AUTOMATIQUE."""
 
     def get(self, request):
         config = ConfigurationPaiement.get_instance()
-        return Response(ConfigurationPaiementSerializer(config).data)
+        return ApiResponse.success(data=ConfigurationPaiementSerializer(config).data)
 
     def post(self, request):
         mode = request.data.get('mode')
         if mode not in ('MANUEL', 'AUTOMATIQUE'):
-            return Response({'erreur': 'mode invalide'}, status=status.HTTP_400_BAD_REQUEST)
+            return ApiResponse.error(
+                message="Mode invalide",
+                errors={"mode": ["Doit être 'MANUEL' ou 'AUTOMATIQUE'."]},
+                status_code=400,
+                code="INVALID_MODE"
+            )
 
         config = ConfigurationPaiement.get_instance()
         config.passer_en_automatique() if mode == 'AUTOMATIQUE' else config.passer_en_manuel()
 
-        return Response(ConfigurationPaiementSerializer(config).data)
+        return ApiResponse.success(
+            data=ConfigurationPaiementSerializer(config).data,
+            message=f"Mode {mode} activé"
+        )
 
 
 class PaiementManuelView(APIView):
@@ -47,7 +53,11 @@ class PaiementManuelView(APIView):
         employe_ids = request.data.get('employe_ids')
         paiements = creer_paiements_en_attente(employes=employe_ids, type_paiement='DEMANDE')
         executer_paiements(paiements)
-        return Response(_resume(paiements))
+
+        return ApiResponse.success(
+            data=_resume(paiements),
+            message="Paiements traités"
+        )
 
 
 class RelancePaiementEchoueView(APIView):
@@ -56,8 +66,12 @@ class RelancePaiementEchoueView(APIView):
     def post(self, request):
         employe_ids = request.data.get('employe_ids')
         paiements = relancer_paiements_echoues(employes=employe_ids)
-        return Response({'total_relances': len(paiements), **{k: v for k, v in _resume(paiements).items() if k != 'total'}})
-    
+        resume = {k: v for k, v in _resume(paiements).items() if k != 'total'}
+
+        return ApiResponse.success(
+            data={'total_relances': len(paiements), **resume},
+            message="Relance effectuée"
+        )
 
 
 class SoldeNotchPayView(APIView):
@@ -67,6 +81,11 @@ class SoldeNotchPayView(APIView):
         try:
             solde = consulter_solde()
         except Exception as e:
-            return Response({'erreur': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+            return ApiResponse.error(
+                message="Impossible de récupérer le solde NotchPay",
+                errors=str(e),
+                status_code=502,
+                code="NOTCHPAY_UNAVAILABLE"
+            )
 
-        return Response({'solde': solde})
+        return ApiResponse.success(data={'solde': solde})

@@ -1,11 +1,9 @@
 from django.http import HttpResponse
-from utils.mixins import AvecSiteMixin, avec_site
-from rest_framework import status
-from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView
-from rest_framework.response import Response
+from core.mixins import AvecSiteMixin, avec_site
+from rest_framework.generics import ListAPIView, ValidationError
 from rest_framework.views import APIView
 
+from core.response import ApiResponse
 from apps.odoo_attendance.models import Attendance
 from apps.paiements.pdf import generer_pdf_historique
 
@@ -27,18 +25,11 @@ from .services import (
 class AttendanceView(AvecSiteMixin, ListAPIView):
     """
     GET  /attendances/?statut_paiement=PAYE&statut_attendance=ARCHIVE
-    Liste paginée des attendances du site courant, groupées par employé.
-
     POST /attendances/
-    Body: { "employee_id": "EMP001", "action": "sign_in", ... }
-    Crée une attendance manuellement.
-
     PATCH /attendances/
-    Body: { "ids": [1, 2, 3], "statut_paiement": "PAYE", "statut_attendance": "ARCHIVE" }
-    Met à jour le statut de plusieurs attendances en une fois.
     """
     serializer_class = AttendanceParEmployeSerializer
-    site_requis = False  # pas de site -> liste vide au lieu d'une erreur 400
+    site_requis = False
 
     def get_queryset(self):
         if not self.site:
@@ -54,74 +45,66 @@ class AttendanceView(AvecSiteMixin, ListAPIView):
         input_dto = CreateAttendanceManuelInputDTO(data=request.data)
         input_dto.is_valid(raise_exception=True)
 
-        try:
-            attendance = create_attendance_manuel(input_dto.validated_data)
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        # Plus besoin de try/except ValueError : géré par custom_exception_handler
+        attendance = create_attendance_manuel(input_dto.validated_data)
 
         output = CreateAttendanceOutputDTO({
-            'message':           'Attendance créée manuellement.',
             'id':                attendance.id,
             'action':            attendance.action,
             'statut_attendance': attendance.statut_attendance,
         })
-        return Response(output.data, status=status.HTTP_201_CREATED)
-    
+        return ApiResponse.success(
+            data=output.data,
+            message="Attendance créée manuellement.",
+            status_code=201
+        )
+
     def patch(self, request):
         input_dto = UpdateStatutInputDTO(data=request.data)
         input_dto.is_valid(raise_exception=True)
         data = input_dto.validated_data
 
-        try:
-            result = update_statut_bulk(
-                ids=data['ids'],
-                statut_paiement=data.get('statut_paiement'),
-                statut_attendance=data.get('statut_attendance'),
-            )
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        result = update_statut_bulk(
+            ids=data['ids'],
+            statut_paiement=data.get('statut_paiement'),
+            statut_attendance=data.get('statut_attendance'),
+        )
 
         output = UpdateStatutOutputDTO({
-            'message': f"{result['updated']} attendance(s) mis à jour.",
             'updated': result['updated'],
             'ids':     result['ids'],
         })
-        return Response(output.data)
+        return ApiResponse.success(
+            data=output.data,
+            message=f"{result['updated']} attendance(s) mis à jour."
+        )
 
 
 class AttendanceDetailView(APIView):
-    """
-    GET /attendances/<pk>/
-    Détail d'une attendance précise (doit appartenir au site courant).
-    """
+    """GET /attendances/<pk>/"""
 
     @avec_site()
     def get(self, request, pk, site):
-        try:
-            attendance = get_attendance_detail(pk, site=site)
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        return Response(AttendanceSerializer(attendance).data)
+        # ValueError levée par get_attendance_detail -> transformée en 400 par le handler global
+        # Si vous voulez un vrai 404 ici, levez plutôt Http404 ou NotFound dans le service
+        attendance = get_attendance_detail(pk, site=site)
+        return ApiResponse.success(data=AttendanceSerializer(attendance).data)
+
 
 class HistoriqueEmployeView(ListAPIView):
-    """
-    GET /employe/?employe_id=123
-    Historique paginé des paiements d'un employé précis (tous sites).
-    """
-    serializer_class =PaiementSerializer
+    """GET /employe/?employe_id=123"""
+    serializer_class = PaiementSerializer
 
     def get_queryset(self):
         employe_id = self.request.query_params.get('employe_id')
         if not employe_id or not employe_id.isdigit():
-            raise ValidationError({'detail': 'employe_id requis et doit être un entier'})
+            raise ValidationError({'employe_id': 'requis et doit être un entier'})
         return get_historique_employe(employe_id)
 
 
 class HistoriqueView(AvecSiteMixin, ListAPIView):
     """
     GET /historique/?page=1&search=...&dept=...&date_debut=...&date_fin=...
-    Historique paginé des paiements du site courant, avec stats globales
-    calculées sur tout le résultat filtré (pas juste la page affichée).
     """
     serializer_class = PaiementSerializer
 
@@ -130,28 +113,23 @@ class HistoriqueView(AvecSiteMixin, ListAPIView):
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        response.data['stats'] = get_historique_stats(self.get_queryset())
+        # response.data = {success, message, data: {results, pagination}, errors}
+        response.data['data']['stats'] = get_historique_stats(self.get_queryset())
         return response
 
 
 class HistoriqueParJourPaiementView(APIView):
-    """
-    GET /historique/par-jour/?limit=4
-    Historique du site courant, regroupé par date de paiement (pas paginé).
-    """
+    """GET /historique/par-jour/?limit=4 (pas paginé)"""
 
-    @avec_site(on_site_manquant=lambda self, request: Response([]))
+    @avec_site(on_site_manquant=lambda self, request: ApiResponse.success(data=[]))
     def get(self, request, site):
         qs    = appliquer_filtres_historique(request, site=site)
         limit = int(request.query_params.get('limit', 4))
-        return Response(list(get_historique_par_jour(qs, limit)))
+        return ApiResponse.success(data=list(get_historique_par_jour(qs, limit)))
 
 
 class ExportPdfHistoriqueView(APIView):
-    """
-    GET /historique/export-pdf/
-    Génère et renvoie un PDF de l'historique filtré du site courant.
-    """
+    """GET /historique/export-pdf/ — reste en HttpResponse (fichier binaire, pas du JSON)"""
 
     @avec_site()
     def get(self, request, site):
@@ -164,25 +142,20 @@ class ExportPdfHistoriqueView(APIView):
 
 
 class StatsView(APIView):
-    """
-    GET /stats/
-    Compteurs globaux du dashboard pour le site courant (pas de pagination).
-    """
+    """GET /stats/ (pas de pagination)"""
 
     @avec_site()
     def get(self, request, site):
         qs = Attendance.objects.select_related('employe').filter(employe__site_travail=site)
-        return Response(StatsOutputDTO(get_stats_globales(qs)).data)
+        return ApiResponse.success(data=StatsOutputDTO(get_stats_globales(qs)).data)
 
 
 class JoursCumulesView(AvecSiteMixin, ListAPIView):
-    """
-    GET /jours-cumules/
-    """
-    site_requis = False  # pas de site -> liste vide au lieu d'une erreur 400
+    """GET /jours-cumules/"""
+    site_requis = False
 
     def get_queryset(self):
         return get_jours_cumules_impayes(site=self.site) if self.site else []
 
     def list(self, request, *args, **kwargs):
-        return Response(self.get_queryset())
+        return ApiResponse.success(data=self.get_queryset())

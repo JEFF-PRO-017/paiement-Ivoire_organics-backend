@@ -11,7 +11,8 @@ from . import notchpay_service
 
 def creer_paiements_en_attente(employes=None, type_paiement='DEMANDE'):
     """Regroupe les attendances impayées par employé -> 1 virement par employé."""
-    qs = Attendance.objects.filter(statut_paiement='EN_ATTENTE')
+    qs = Attendance.objects.filter(statut_paiement='IMPAYE')
+    print('qs',qs)
     if employes is not None:
         qs = qs.filter(employe__in=employes)
 
@@ -35,6 +36,10 @@ def creer_paiements_en_attente(employes=None, type_paiement='DEMANDE'):
             statut='PENDING',
         )
         paiement.attendances.set(attendances)
+        paiement.attendances.update(
+                statut_paiement='EN_COURS',
+                date_validation_paiement=timezone.now(),
+        )
         paiements.append(paiement)
 
     return paiements
@@ -44,15 +49,9 @@ def executer_paiements(paiements):
     """Envoie tous les paiements (1 seul ou des centaines) via le point d'entrée unique NotchPay."""
     if not paiements:
         return paiements
-
+    print('avant le transfert')
     notchpay_service.envoyer_transfert(paiements)
-
-    for paiement in paiements:
-        if paiement.statut == 'SUCCESS':
-            paiement.attendances.update(
-                statut_paiement='PAYE',
-                date_validation_paiement=timezone.now(),
-            )
+    print('apres le transfert')
     return paiements
 
 
@@ -65,9 +64,12 @@ def relancer_paiements_echoues(employes=None):
     paiements = list(qs)
     for paiement in paiements:
         paiement.reference = f"PAY-{uuid.uuid4().hex[:12].upper()}"
-        paiement.statut = 'PENDING'
-        paiement.save(update_fields=['reference', 'statut'])
-
+        paiement.statut = 'PENDING',
+        paiement.attendances.update(
+                statut_paiement='EN_COURS',
+                date_validation_paiement=timezone.now(),
+        )
+        paiement.save()
     executer_paiements(paiements)
     return paiements
 

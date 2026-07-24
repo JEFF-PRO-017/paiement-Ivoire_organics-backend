@@ -97,9 +97,10 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'utils.pagination.StandardPagination',
+    'DEFAULT_PAGINATION_CLASS': 'core.pagination.CustomPageNumberPagination',
     'PAGE_SIZE': 5,
     'DEFAULT_THROTTLE_RATES': {'anon': '5/min'},
+    'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
 }
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
@@ -147,6 +148,6 @@ DEFAULT_FROM_EMAIL  = config('DEFAULT_FROM_EMAIL',  default=EMAIL_HOST_USER)
 # CINETPAY_NOTIFY_URL = config('CINETPAY_NOTIFY_URL')
 
 
-NOTCHPAY_API_KEY = config('NOTCHPAY_API_KEY')
-NOTCHPAY_GRANT_KEY = config('NOTCHPAY_GRANT_KEY')
-NOTCHPAY_WEBHOOK_SECRET = config('NOTCHPAY_WEBHOOK_SECRET')
+NOTCHPAY_PUBLIC_KEY = config('NOTCHPAY_PUBLIC_KEY')
+NOTCHPAY_PRIVATE_KEY = config('NOTCHPAY_PRIVATE_KEY')
+NOTCHPAY_HASH_KEY_SECRET = config('NOTCHPAY_HASH_KEY_SECRET')

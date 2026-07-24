@@ -1,5 +1,7 @@
-from rest_framework import generics, permissions
+from rest_framework import generics
+from rest_framework.mixins import UpdateModelMixin
 
+from core.response import ApiResponse
 from .models import Parametre
 from .serializers import ParametreSerializer
 from .services import ParametreService
@@ -16,3 +18,15 @@ class ParametreUpdateView(generics.UpdateAPIView):
 
     def perform_update(self, serializer):
         ParametreService.mettre_a_jour(serializer.instance, self.request.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return ApiResponse.success(
+            data=serializer.data,
+            message="Paramètres mis à jour avec succès"
+        )

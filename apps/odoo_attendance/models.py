@@ -1,5 +1,5 @@
 from django.db import models
-from utils.detecter_operateur import detecter_operateur_ci
+from core.detecter_operateur import detecter_operateur_ci
 from phonenumber_field.modelfields import PhoneNumberField 
 
 
@@ -35,9 +35,10 @@ class Employe(models.Model):
 
 class Attendance(models.Model):
     STATUT_CHOICES = [
-        ('EN_ATTENTE', 'En attente'),
-        ('PAYE', 'Payé'),
-        ('IMPAYE', 'Impayé'),
+        ('EN_ATTENTE', 'En attente'),# avant validation par la rh
+        ('PAYE', 'Payé'), # deja ok
+        ('IMPAYE', 'Impayé'), # avant l'envoie a l'aggreateur
+        ('EN_COURS','En cours') # avant validation  de l'aggregateur
     ]
     STATUT_A = [
         ('CREATION_AUTO', "Créé par le système"),

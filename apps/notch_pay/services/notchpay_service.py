@@ -3,7 +3,7 @@ from itertools import islice
 from django.conf import settings
 from django.utils import timezone
 
-import notchpay
+from notchpay import NotchPay
 from notchpay.exceptions import (
     NotchPayValidationError, NotchPayAuthenticationError,
     NotchPayAPIError, NotchPayError,
@@ -13,14 +13,14 @@ TAILLE_MAX_BULK = 200  # limite imposée par NotchPay pour /transfers/bulk
 
 
 def _client():
-    notchpay.api_key = settings.NOTCHPAY_API_KEY
-    notchpay.set_grant_key(settings.NOTCHPAY_GRANT_KEY)  # obligatoire pour les transfers
+    notchpay = NotchPay(settings.NOTCHPAY_PUBLIC_KEY)
+    notchpay.set_grant_key(settings.NOTCHPAY_PRIVATE_KEY)  # obligatoire pour les transfers
     return notchpay
 
 
 def _mapper_statut(status_notchpay):
     """NotchPay renvoie 'complete'/'failed'/'pending' -> on aligne sur nos choices internes."""
-    mapping = {'complete': 'SUCCESS', 'failed': 'FAILED', 'pending': 'PENDING'}
+    mapping = {'complete': 'SUCCESS', 'failed': 'FAILED', 'pending': 'PENDING','canceled':'CANCELED'}
     return mapping.get(status_notchpay, 'PENDING')
 
 
@@ -79,12 +79,15 @@ def _envoyer_lot(paiements):
         p.date_envoi = timezone.now()
         p.nombre_tentatives += 1
 
+
     try:
-        response = client.transfers.create_bulk({
+        bulk = {
             'currency': 'XOF',
             'description': f"Paie du {timezone.now().date()}",
             'transfers': [_construire_transfert(p) for p in paiements],
-        })
+        }
+        print('bulk',bulk)
+        response = client.transfers.create_bulk(bulk)
         _appliquer_resultats_bulk(response.bulk_transfer, paiements_par_reference)
 
     except NotchPayValidationError as e:

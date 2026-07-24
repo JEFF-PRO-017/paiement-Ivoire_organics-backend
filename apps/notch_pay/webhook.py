@@ -1,5 +1,3 @@
-from apps.paiements.models import Paiement
-    
 import hmac
 import hashlib
 import json
@@ -10,39 +8,47 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from apps.paiements.models import Paiement
 
-def _signature_valide(payload_brut, signature_recue):
-    signature_calculee = hmac.new(
-        settings.NOTCHPAY_WEBHOOK_SECRET.encode('utf-8'),
-        payload_brut,
+
+
+def verify_webhook_signature(payload, signature, secret):
+    """Recalcule la signature HMAC-SHA256 et la compare à celle envoyée par NotchPay."""
+    calculated_signature = hmac.new(
+        secret.encode('utf-8'),
+        payload.encode('utf-8'),
         hashlib.sha256,
     ).hexdigest()
-    return hmac.compare_digest(signature_calculee, signature_recue)
+    # compare_digest évite les attaques par timing (comparaison à temps constant)
+    return hmac.compare_digest(calculated_signature, signature or '')
 
 
 @csrf_exempt
 @require_POST
 def notchpay_webhook(request):
-    signature = request.headers.get('X-Notchpay-Signature', '')
-    if not _signature_valide(request.body, signature):
-        return HttpResponse(status=401)
+    payload = request.body.decode('utf-8')
+    signature = request.headers.get('X-Notch-Signature')
 
-    event = json.loads(request.body)
+    if not verify_webhook_signature(payload, signature, settings.NOTCHPAY_WEBHOOK_SECRET):
+        return HttpResponse('Invalid signature', status=400)
+
+    event = json.loads(payload)
     reference = event.get('data', {}).get('reference')
 
     try:
         paiement = Paiement.objects.get(reference=reference)
     except Paiement.DoesNotExist:
-        return HttpResponse(status=404)
+        return HttpResponse('Paiement introuvable', status=404)
 
-    if event.get('type') == 'transfer.complete':
+    event_type = event.get('type', '')
+    if event_type == 'transfer.complete':
         paiement.statut = 'SUCCESS'
         paiement.date_confirmation = timezone.now()
         paiement.attendances.update(statut_paiement='PAYE', date_validation_paiement=timezone.now())
-    elif event.get('type') == 'transfer.failed':
+    elif event_type == 'transfer.failed':
         paiement.statut = 'FAILED'
         paiement.date_confirmation = timezone.now()
 
     paiement.reponse_brute = event
     paiement.save()
-    return HttpResponse('OK')
+    return HttpResponse('Webhook received', status=200)
