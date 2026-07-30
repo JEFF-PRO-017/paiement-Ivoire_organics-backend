@@ -90,7 +90,7 @@ def save_attendances(attendances: list):
         # un employé ne peut avoir qu'une seule présence par jour
         if Attendance.objects.filter(
             employe=employe,
-            date_work__date=aware_dt.date()  # fix : comparer une date à une date, pas à un datetime
+            date=aware_dt.date()  # fix : comparer une date à une date, pas à un datetime
         ).exists():
             skipped += 1
             continue

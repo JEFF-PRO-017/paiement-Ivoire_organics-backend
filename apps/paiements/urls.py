@@ -3,7 +3,7 @@ from django.urls import path
 from .views import (
     AttendanceDetailView, AttendanceView, ExportPdfHistoriqueView,
     HistoriqueEmployeView, HistoriqueParJourPaiementView, HistoriqueView,
-    JoursCumulesView, StatsView, 
+    JoursCumulesView, SignalementView, StatsView, 
 )
 
 urlpatterns = [
@@ -17,4 +17,5 @@ urlpatterns = [
 
     path('stats/', StatsView.as_view(), name='stats'),
     path('jours-cumules/', JoursCumulesView.as_view(), name='jours-cumules'),
+    path('signalements/', SignalementView.as_view(), name ='message mail'),
 ]

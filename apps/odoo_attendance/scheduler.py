@@ -44,17 +44,17 @@ def _handle_odoo_error(context: str, e: Exception):
 
 # ── Tâches ────────────────────────────────────────────────────────────────────
 
-def _task_load_all_employees():
-    from .odoo_service import get_all_employees
-    from .services import update_or_create_employees
-    _dev(">>> Chargement initial des employés...")
-    try:
-        records = get_all_employees()
-        update_or_create_employees(records)
-        logger.info(f"[Odoo] {len(records)} employés chargés au démarrage.")
-        _dev(f"<<< {len(records)} employés chargés OK.")
-    except Exception as e:
-        _handle_odoo_error("Chargement employés", e)
+# def _task_load_all_employees():
+#     from .odoo_service import get_all_employees
+#     from .services import update_or_create_employees
+#     _dev(">>> Chargement initial des employés...")
+#     try:
+#         records = get_all_employees()
+#         update_or_create_employees(records)
+#         logger.info(f"[Odoo] {len(records)} employés chargés au démarrage.")
+#         _dev(f"<<< {len(records)} employés chargés OK.")
+#     except Exception as e:
+#         _handle_odoo_error("Chargement employés", e)
 
 
 def _task_load_all_attendances(days_initial_attendance=1):

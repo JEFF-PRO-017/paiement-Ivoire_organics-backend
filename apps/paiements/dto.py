@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.odoo_attendance.models import Signalement
+
 
 # ── ENTRÉE ────────────────────────────────────────────────────────────────────
 
@@ -12,11 +14,11 @@ class UpdateStatutInputDTO(serializers.Serializer):
 
 class CreateAttendanceManuelInputDTO(serializers.Serializer):
     """Données attendues pour créer une attendance manuellement."""
-    employee_id     = serializers.DecimalField(max_digits=10, decimal_places=0)
+    employe_id     = serializers.DecimalField(max_digits=10, decimal_places=0)
     action          = serializers.CharField()
-    date_work            = serializers.DateTimeField()
-    worked_hours    = serializers.FloatField(required=False, allow_null=True)
-    statut_paiement = serializers.CharField(required=False, allow_null=True)
+    date_work            = serializers.CharField()
+    # worked_hours    = serializers.FloatField(required=False, allow_null=True)
+    # statut_paiement = serializers.CharField(required=False, allow_null=True)
 
 
 # ── SORTIE ────────────────────────────────────────────────────────────────────
@@ -30,10 +32,12 @@ class UpdateStatutOutputDTO(serializers.Serializer):
 
 class CreateAttendanceOutputDTO(serializers.Serializer):
     """Réponse après création manuelle d'une attendance."""
-    message           = serializers.CharField()
+    # message           = serializers.CharField()
     id                = serializers.IntegerField()
     action            = serializers.CharField()
+    statut_paiement = serializers.CharField()
     statut_attendance = serializers.CharField()
+
 
 
 class StatsOutputDTO(serializers.Serializer):
@@ -63,7 +67,7 @@ class HistoriqueLigneOutputDTO(serializers.Serializer):
     id                   = serializers.IntegerField()
     date_paiement        = serializers.DateField()
     nombre_jours         = serializers.IntegerField()
-    montant_total        = serializers.FloatField()
+    montant        = serializers.FloatField()
     employe__nom_complet = serializers.CharField()
     employe__id          = serializers.IntegerField()
     employe__departement = serializers.CharField(allow_null=True)
@@ -77,3 +81,19 @@ class HistoriquePagineOutputDTO(serializers.Serializer):
     total_pages = serializers.IntegerField()
     total_count = serializers.IntegerField()
     stats       = HistoriqueStatsOutputDTO()
+
+
+
+class CreateSignalementInputDTO(serializers.Serializer):
+    employe_id   = serializers.IntegerField()
+    type_demande = serializers.ChoiceField(choices=Signalement.TYPE_CHOICES)
+    jour         = serializers.DateField()
+    raison       = serializers.CharField(min_length=1, trim_whitespace=True)
+
+
+class CreateSignalementOutputDTO(serializers.Serializer):
+    id                = serializers.IntegerField()
+    type_demande      = serializers.CharField()
+    jour              = serializers.DateField()
+    attendance_id     = serializers.IntegerField(allow_null=True)
+    statut_attendance = serializers.CharField(allow_null=True)

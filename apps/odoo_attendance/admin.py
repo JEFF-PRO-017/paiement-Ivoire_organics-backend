@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Attendance, Employe, TarifJournalier
+from .models import Attendance, Employe, Signalement, TarifJournalier
 from django.utils import timezone
 
 @admin.register(Attendance)
@@ -15,6 +15,8 @@ class EmployeAdmin(admin.ModelAdmin):
     list_display  = ('odoo_id', 'nom_complet', 'departement', 'site_travail', 'statut')
     list_filter   = ('statut', 'departement')
     search_fields = ('nom_complet', 'odoo_id')
+
+
 
 @admin.register(TarifJournalier)
 class TarifJournalierAdmin(admin.ModelAdmin):
@@ -33,3 +35,11 @@ class TarifJournalierAdmin(admin.ModelAdmin):
             .first()
         )
         return dernier and dernier.pk == obj.pk
+
+
+
+@admin.register(Signalement)
+class EmployeAdmin(admin.ModelAdmin):
+    list_display  = ('employe__nom_complet', 'demandeur__email', 'type_demande', 'jour', 'raison','cree_le')
+    list_filter   = ('type_demande', 'cree_le')
+    search_fields = ('type_demande', 'jour')

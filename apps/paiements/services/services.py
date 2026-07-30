@@ -1,12 +1,14 @@
 from apps.odoo_attendance.models import Attendance, Employe
 from apps.odoo_attendance.services import get_montant_journalier
-from .models import   Paiement
+from ..models import   Paiement
 from django.db.models import Sum, Avg, Count
 from apps.odoo_attendance.models import Attendance, Employe
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.utils.dateparse import parse_datetime
+
 
 def update_statut_bulk(ids: list, statut_paiement: str = None, statut_attendance: str = None) -> dict:
         """
@@ -17,8 +19,8 @@ def update_statut_bulk(ids: list, statut_paiement: str = None, statut_attendance
             raise ValueError("La liste d'IDs est vide.")
 
         # Validation des valeurs
-        statuts_paiement_valides   = ['EN_ATTENTE', 'PAYE', 'IMPAYE']
-        statuts_attendance_valides = ['CREATION_AUTO', 'CREATION_MANUELLE', 'ARCHIVE']
+        statuts_paiement_valides   = ['EN_ATTENTE', 'PAYE', 'IMPAYE','ARCHIVE']
+        statuts_attendance_valides = ['CREATION_AUTO', 'CREATION_MANUELLE']
 
         if statut_paiement and statut_paiement not in statuts_paiement_valides:
             raise ValueError(f"statut_paiement invalide : {statut_paiement}")
@@ -49,7 +51,7 @@ def create_attendance_manuel(data: dict) -> Attendance:
     Crée une attendance manuellement par l'admin.
     statut_attendance est forcé à CREATION_MANUELLE.
     """
-    required_fields = ['employee_id', 'action', 'date_work']
+    required_fields = ['employe_id', 'action', 'date_work']
     for field in required_fields:
         if field not in data:
             raise ValueError(f"Le champ '{field}' est obligatoire.")
@@ -57,20 +59,30 @@ def create_attendance_manuel(data: dict) -> Attendance:
     if data.get('action') not in ['sign_in', 'sign_out']:
         raise ValueError("action doit être 'sign_in' ou 'sign_out'.")
     
-    employee_id = data['employee_id']
-    employe = Employe.objects.filter(id=employee_id).first()
+    employe_id = data['employe_id']
+    employe = Employe.objects.filter(id=employe_id).first()
     if not employe:
         raise ValueError("cet employe n'existe pas")
+
+    date_work_raw = data['date_work']
+
+    if isinstance(date_work_raw, str):
+        date_work = parse_datetime(date_work_raw)
+        if date_work is None:
+            raise ValueError(f"Format de date_work invalide : {date_work_raw}")
+    else:
+        date_work = date_work_raw  # déjà un datetime
 
     attendance = Attendance(
         employe                  = employe,
         action                   = data['action'],
-        date_work                     = data['date_work'],
+        date_work                = date_work,
         worked_hours             = data.get('worked_hours'),
         date_validation_paiement = data.get('date_validation_paiement'),
-        statut_paiement          = data.get('statut_paiement', 'EN_ATTENTE'),
-        statut_attendance        = 'CREATION_MANUELLE',  # ← forcé
-        montant_journalier       = get_montant_journalier(data['date_work'].date())
+        statut_paiement          = data.get('statut_paiement'),
+        statut_attendance        = 'CREATION_MANUELLE',
+        montant_journalier       = get_montant_journalier(date_work.date()),
+        odoo_attendance_id       = f"#_{employe.id}_{date_work.date()}",
     )
     try:
         attendance.full_clean()
@@ -91,7 +103,7 @@ def get_attendances_par_employe(qs,statut_paiement=None, statut_attendance=None)
     Retourne les attendances groupées par employé.
     """
     if statut_paiement:
-        qs = qs.filter(statut_paiement=statut_paiement)
+        qs = qs.filter(statut_paiement__in=[statut_paiement,'EN_COURS_TRAITEMENT_SUPPRESION','EN_COURS_TRAITEMENT_CREATION'])
     if statut_attendance:
         qs = qs.filter(statut_attendance=statut_attendance)
 
@@ -175,8 +187,8 @@ def get_jours_cumules_impayes(site: str = None):
 def get_historique_stats(qs):
     """Calcule les stats agrégées sur un queryset d'historique (avant pagination)."""
     stats_qs = qs.aggregate(
-        total   = Sum('montant_total'),
-        moyenne = Avg('montant_total'),
+        total   = Sum('montant'),
+        moyenne = Avg('montant'),
         count   = Count('id'),
     )
     nb_employes = qs.values('employe_id').distinct().count()
@@ -192,8 +204,9 @@ def get_historique_stats(qs):
 def get_historique_par_jour(qs, limit):
     """Regroupe un queryset d'historique par date de paiement."""
     return (
-        qs.values('date_paiement')[:limit]
-        .annotate(total=Sum('montant_total'), count=Count('id'))
+        qs.values('date_paiement')
+        .annotate(total=Sum('montant'), count=Count('id'))
+        .order_by('-date_paiement')[:limit]
     )
 
 def get_historique_employe(employe_id):

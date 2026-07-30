@@ -19,7 +19,7 @@ def generer_pdf_historique(lignes) -> bytes:
             l.employe.odoo_id,
             l.employe.departement,
             str(l.nombre_jours),
-            f"{l.montant_total:,.0f}",
+            f"{l.montant:,.0f}",
             '—',
         ]
         for l in lignes

@@ -141,7 +141,7 @@ EMAIL_USE_TLS       = config('EMAIL_USE_TLS',  cast=bool, default=True)
 EMAIL_HOST_USER     = config('EMAIL_HOST_USER',     default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL  = config('DEFAULT_FROM_EMAIL',  default=EMAIL_HOST_USER)
-
+MAINTENANCE_EMAIL   = config('MAINTENANCE_EMAIL',  default='')
 #___ Cinet Pay 
 # CINETPAY_API_KEY    = config('CINETPAY_API_KEY')
 # CINETPAY_API_PASSWORD = config('CINETPAY_API_PASSWORD')

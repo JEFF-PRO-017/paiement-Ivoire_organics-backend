@@ -1,20 +1,21 @@
 from django.http import HttpResponse
+from apps.paiements.services.pdf import generer_pdf_historique
+from apps.paiements.services.signalement import create_signalement
 from core.mixins import AvecSiteMixin, avec_site
 from rest_framework.generics import ListAPIView, ValidationError
 from rest_framework.views import APIView
 
 from core.response import ApiResponse
 from apps.odoo_attendance.models import Attendance
-from apps.paiements.pdf import generer_pdf_historique
 
 from .dto import (
-    CreateAttendanceManuelInputDTO, CreateAttendanceOutputDTO,
+    CreateAttendanceManuelInputDTO, CreateAttendanceOutputDTO, CreateSignalementInputDTO, CreateSignalementOutputDTO,
     StatsOutputDTO, UpdateStatutInputDTO, UpdateStatutOutputDTO,
 )
 from .serializers import (
     AttendanceParEmployeSerializer, AttendanceSerializer, PaiementSerializer,
 )
-from .services import (
+from .services.services import (
     appliquer_filtres_historique, create_attendance_manuel, get_attendance_detail,
     get_attendances_par_employe, get_historique_employe, get_historique_par_jour,
     get_historique_stats, get_jours_cumules_impayes, get_stats_globales,
@@ -43,14 +44,16 @@ class AttendanceView(AvecSiteMixin, ListAPIView):
 
     def post(self, request):
         input_dto = CreateAttendanceManuelInputDTO(data=request.data)
-        input_dto.is_valid(raise_exception=True)
+        input_dto.is_valid(raise_exception=True)      # ← appel seul, ignore le retour bool
+        data = input_dto.validated_data                # ← récupère les données ICI, séparément
+        data['statut_paiement'] = 'EN_ATTENTE'
 
-        # Plus besoin de try/except ValueError : géré par custom_exception_handler
-        attendance = create_attendance_manuel(input_dto.validated_data)
+        attendance = create_attendance_manuel(data)
 
         output = CreateAttendanceOutputDTO({
             'id':                attendance.id,
             'action':            attendance.action,
+            'statut_paiement':   attendance.statut_paiement,
             'statut_attendance': attendance.statut_attendance,
         })
         return ApiResponse.success(
@@ -73,6 +76,8 @@ class AttendanceView(AvecSiteMixin, ListAPIView):
         output = UpdateStatutOutputDTO({
             'updated': result['updated'],
             'ids':     result['ids'],
+            'message': f"{result['updated']} attendance(s) mis à jour.",
+
         })
         return ApiResponse.success(
             data=output.data,
@@ -159,3 +164,34 @@ class JoursCumulesView(AvecSiteMixin, ListAPIView):
 
     def list(self, request, *args, **kwargs):
         return ApiResponse.success(data=self.get_queryset())
+
+
+
+class SignalementView(APIView):
+    """POST /signalements/ — signalement d'un utilisateur non-admin (création/suppression)."""
+
+    def post(self, request):
+        input_dto = CreateSignalementInputDTO(data=request.data)
+        input_dto.is_valid(raise_exception=True)
+        data = input_dto.validated_data
+
+        signalement = create_signalement(
+            employe_id=data['employe_id'],
+            type_demande=data['type_demande'],
+            jour=data['jour'],
+            raison=data['raison'],
+            demandeur=request.user,
+        )
+
+        output = CreateSignalementOutputDTO({
+            'id': signalement.id,
+            'type_demande': signalement.type_demande,
+            'jour': signalement.jour,
+            'attendance_id': signalement.attendance_id,
+            'statut_attendance': signalement.attendance.statut_attendance if signalement.attendance else None,
+        })
+        return ApiResponse.success(
+            data=output.data,
+            message="Signalement envoyé à la maintenance.",
+            status_code=201,
+        )

@@ -1,6 +1,7 @@
 from django.db import models
 from core.detecter_operateur import detecter_operateur_ci
 from phonenumber_field.modelfields import PhoneNumberField 
+from django.conf import settings
 
 
 class Employe(models.Model):
@@ -38,23 +39,25 @@ class Attendance(models.Model):
         ('EN_ATTENTE', 'En attente'),# avant validation par la rh
         ('PAYE', 'Payé'), # deja ok
         ('IMPAYE', 'Impayé'), # avant l'envoie a l'aggreateur
-        ('EN_COURS','En cours') # avant validation  de l'aggregateur
+        ('EN_COURS','En cours'), # avant validation  de l'aggregateur
+        ('EN_COURS_TRAITEMENT_SUPPRESION', "En cours de traitement (signalement SUPPRESION)"),
+        ('EN_COURS_TRAITEMENT_CREATION', "En cours de traitement (signalement CREATION)"),
+        ('ARCHIVE', "Supprimé par l'admin"),
     ]
     STATUT_A = [
         ('CREATION_AUTO', "Créé par le système"),
         ('CREATION_MANUELLE', "Créé par l'admin"),
-        ('ARCHIVE', "Supprimé par l'admin"),
     ]
     ACTION_CHOICES = [('sign_in', 'Entrée'), ('sign_out', 'Sortie')]
 
     employe = models.ForeignKey(Employe, on_delete=models.PROTECT)
-    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES,default='sign_out')
     date_work = models.DateTimeField()
     date = models.DateField(editable=False)
     worked_hours = models.FloatField(null=True, blank=True)
     odoo_attendance_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     date_validation_paiement = models.DateTimeField(null=True, blank=True)
-    statut_paiement = models.CharField(max_length=15, choices=STATUT_CHOICES, default='EN_ATTENTE')
+    statut_paiement = models.CharField(max_length=50, choices=STATUT_CHOICES, default='EN_ATTENTE')
     statut_attendance = models.CharField(max_length=20, choices=STATUT_A, default='CREATION_AUTO')
     montant_journalier = models.DecimalField(max_digits=12, decimal_places=2)
 
@@ -94,7 +97,28 @@ class TarifJournalier(models.Model):
     def __str__(self):
         return f"Tarif Journalier: {self.montant} à partir de {self.date_effet}"
 
-    
+
+
+class Signalement(models.Model):
+    TYPE_CHOICES = [
+        ('CREATION', 'Demande de création de présence'),
+        ('SUPPRESSION', 'Demande de suppression de présence'),
+    ]
+
+    employe      = models.ForeignKey(Employe, on_delete=models.CASCADE, related_name='signalements')
+    demandeur    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='signalements_envoyes')
+    type_demande = models.CharField(max_length=15, choices=TYPE_CHOICES)
+    jour         = models.DateField()
+    raison       = models.TextField()
+    cree_le      = models.DateTimeField(auto_now_add=True)
+    attendance   = models.ForeignKey(Attendance, on_delete=models.SET_NULL, null=True, blank=True, related_name='signalements')  # ← ajouté : trace l'attendance impactée
+
+    class Meta:
+        db_table = 'signalements_attendance'
+        ordering = ['-cree_le']
+
+    def __str__(self):
+        return f"{self.get_type_demande_display()} · {self.employe} · {self.jour}"  # virgule en trop retirée
 
 
 
