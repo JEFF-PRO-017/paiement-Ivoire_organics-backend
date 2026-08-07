@@ -5,15 +5,15 @@ from django.utils import timezone
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('odoo_attendance_id', 'employe', 'action','date', 'date_work', 'worked_hours', 'statut_paiement', 'statut_attendance')
-    list_filter = ('action', 'statut_paiement', 'statut_attendance')
+    list_display = ('id','odoo_attendance_id', 'employe__nom_complet','employe__id', 'action','date', 'date_work', 'worked_hours', 'statut_paiement', 'statut_attendance','date_validation_paiement','montant_journalier')
+    list_filter = ('statut_paiement', 'statut_attendance', 'montant_journalier')
     search_fields = ('odoo_attendance_id', 'employe__nom_complet')
     ordering = ('-date_work',)
     
 @admin.register(Employe)
 class EmployeAdmin(admin.ModelAdmin):
-    list_display  = ('odoo_id', 'nom_complet', 'departement', 'site_travail', 'statut')
-    list_filter   = ('statut', 'departement')
+    list_display  = ('id','odoo_id', 'nom_complet', 'departement', 'site_travail','mobile_phone','operateur_mobile', 'statut')
+    list_filter   = ('statut', 'departement','site_travail','operateur_mobile')
     search_fields = ('nom_complet', 'odoo_id')
 
 
@@ -39,7 +39,7 @@ class TarifJournalierAdmin(admin.ModelAdmin):
 
 
 @admin.register(Signalement)
-class EmployeAdmin(admin.ModelAdmin):
+class SignalementAdmin(admin.ModelAdmin):
     list_display  = ('employe__nom_complet', 'demandeur__email', 'type_demande', 'jour', 'raison','cree_le')
     list_filter   = ('type_demande', 'cree_le')
     search_fields = ('type_demande', 'jour')

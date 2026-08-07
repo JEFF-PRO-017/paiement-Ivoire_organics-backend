@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     'apps.odoo_attendance',
     'apps.paiements',
     'apps.front_settings',
-    'apps.notch_pay',
+    'apps.pawa_pay',
 ]
 
 MIDDLEWARE = [
@@ -148,6 +148,11 @@ MAINTENANCE_EMAIL   = config('MAINTENANCE_EMAIL',  default='')
 # CINETPAY_NOTIFY_URL = config('CINETPAY_NOTIFY_URL')
 
 
-NOTCHPAY_PUBLIC_KEY = config('NOTCHPAY_PUBLIC_KEY')
-NOTCHPAY_PRIVATE_KEY = config('NOTCHPAY_PRIVATE_KEY')
-NOTCHPAY_HASH_KEY_SECRET = config('NOTCHPAY_HASH_KEY_SECRET')
+# NOTCHPAY_PUBLIC_KEY = config('NOTCHPAY_PUBLIC_KEY')
+# NOTCHPAY_PRIVATE_KEY = config('NOTCHPAY_PRIVATE_KEY')
+# NOTCHPAY_HASH_KEY_SECRET = config('NOTCHPAY_HASH_KEY_SECRET')
+
+
+PAWAPAY_BASE_URL =config('PAWAPAY_BASE_URL', 'https://api.sandbox.pawapay.io')
+PAWAPAY_API_TOKEN = config('PAWAPAY_API_TOKEN')
+PAWAPAY_PERIODE_JOURS = int(config('PAWAPAY_PERIODE_JOURS', default=15))

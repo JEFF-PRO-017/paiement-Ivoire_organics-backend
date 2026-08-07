@@ -39,7 +39,8 @@ def update_or_create_employees(employees: list):
                 "nom_complet": emp["name"],
                 "departement": emp["department_id"][1] if emp.get("department_id") else "",
                 "site_travail": nom_site or "",
-                "mobile_phone": emp["mobile_phone"] or "",
+                # "mobile_phone": emp["mobile_phone"] or "", #TODO: normaliser le format du numéro de téléphone
+                "mobile_phone":"+2250503456789",
             },
         )
 
