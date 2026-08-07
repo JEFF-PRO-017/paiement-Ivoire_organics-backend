@@ -2,11 +2,11 @@ from django.http import HttpResponse
 from apps.paiements.services.pdf import generer_pdf_historique
 from apps.paiements.services.signalement import create_signalement
 from core.mixins import AvecSiteMixin, avec_site
-from rest_framework.generics import ListAPIView, ValidationError
+from rest_framework.generics import ListAPIView, ValidationError, get_object_or_404
 from rest_framework.views import APIView
 
 from core.response import ApiResponse
-from apps.odoo_attendance.models import Attendance
+from apps.odoo_attendance.models import Attendance, Employe
 
 from .dto import (
     CreateAttendanceManuelInputDTO, CreateAttendanceOutputDTO, CreateSignalementInputDTO, CreateSignalementOutputDTO,
@@ -16,8 +16,8 @@ from .serializers import (
     AttendanceParEmployeSerializer, AttendanceSerializer, PaiementSerializer,
 )
 from .services.services import (
-    appliquer_filtres_historique, create_attendance_manuel, get_attendance_detail,
-    get_attendances_par_employe, get_historique_employe, get_historique_par_jour,
+    appliquer_filtres_historique, create_attendance_manuel, get_attendance_detail, get_attendance_employe,
+    get_attendances_par_employe, get_historique_par_jour,
     get_historique_stats, get_jours_cumules_impayes, get_stats_globales,
     update_statut_bulk,
 )
@@ -96,16 +96,33 @@ class AttendanceDetailView(APIView):
         return ApiResponse.success(data=AttendanceSerializer(attendance).data)
 
 
-class HistoriqueEmployeView(ListAPIView):
+class AttendanceEmployeView(APIView):
     """GET /employe/?employe_id=123"""
-    serializer_class = PaiementSerializer
 
-    def get_queryset(self):
-        employe_id = self.request.query_params.get('employe_id')
+    def get(self, request, *args, **kwargs):
+        employe_id = request.query_params.get('employe_id')
+
         if not employe_id or not employe_id.isdigit():
-            raise ValidationError({'employe_id': 'requis et doit être un entier'})
-        return get_historique_employe(employe_id)
+            return ApiResponse.error(
+                message="employe_id requis et doit être un entier",
+                code="INVALID_PARAM",
+            )
 
+        employe = Employe.objects.filter(id=employe_id).first()
+        if not employe:
+            return ApiResponse.error(
+                message="Employé introuvable",
+                code="NOT_FOUND",
+            )
+
+        attendances = Attendance.objects.filter(employe=employe)
+
+        serializer = AttendanceParEmployeSerializer({
+            'employe': employe,
+            'attendance_list': attendances,
+        })
+
+        return ApiResponse.success(data=serializer.data)
 
 class HistoriqueView(AvecSiteMixin, ListAPIView):
     """

@@ -1,15 +1,15 @@
 from django.urls import path
 
 from .views import (
-    AttendanceDetailView, AttendanceView, ExportPdfHistoriqueView,
-    HistoriqueEmployeView, HistoriqueParJourPaiementView, HistoriqueView,
+    AttendanceDetailView, AttendanceEmployeView, AttendanceView, ExportPdfHistoriqueView,
+     HistoriqueParJourPaiementView, HistoriqueView,
     JoursCumulesView, SignalementView, StatsView, 
 )
 
 urlpatterns = [
     path('attendances/', AttendanceView.as_view(), name='attendance-list'),
     path('attendances/<int:pk>/', AttendanceDetailView.as_view(), name='attendance-detail'),
-    path('employe/', HistoriqueEmployeView.as_view(), name='historique-employe'),
+    path('employes/', AttendanceEmployeView.as_view(), name='historique-employe'),
 
     path('historique/', HistoriqueView.as_view(), name='historique-list'),
     path('historique/par-jour/', HistoriqueParJourPaiementView.as_view(), name='historique-par-jour'),

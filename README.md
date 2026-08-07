@@ -21,7 +21,7 @@ API REST Django 5.1 + MySQL pour la gestion des paiements journaliers, synchroni
 git clone <repo> && cd paiement_backend
 
 # 2. Environnement virtuel
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate        # Linux/Mac
 venv\Scripts\activate           # Windows
 

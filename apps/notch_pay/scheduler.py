@@ -15,7 +15,6 @@ def _task_cycle_paiement_auto():
 
 def start():
     global _scheduler
-    print("[DEBUG] start() appelée, _scheduler =", _scheduler)
 
     if _scheduler is not None:
         return  # évite un double démarrage (ex: rechargement auto de runserver)

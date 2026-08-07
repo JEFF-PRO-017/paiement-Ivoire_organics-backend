@@ -209,6 +209,6 @@ def get_historique_par_jour(qs, limit):
         .order_by('-date_paiement')[:limit]
     )
 
-def get_historique_employe(employe_id):
-    """Retourne le queryset d'historique de paiement d'un employé donné."""
-    return Paiement.objects.filter(employe_id=employe_id)
+def get_attendance_employe(employe_id):
+    """Retourne le queryset d'historique  d'un employé donné."""
+    return Attendance.objects.filter(employe__id=employe_id)
