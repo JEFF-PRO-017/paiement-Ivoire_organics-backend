@@ -32,6 +32,8 @@ def update_or_create_employees(employees: list):
                 f"[Services] Site introuvable : '{nom_site}' "
                 f"(employé {emp.get('name')} odoo_id={emp['id']})"
             )
+        #si nous somme en mode debug on met un numero de telephone par defaut pour eviter les erreurs de paiement
+        mobile_phone = emp["mobile_phone"] if not settings.DEBUG else "+2250503456789"
 
         obj, was_created = Employe.objects.update_or_create(
             odoo_id=emp["id"],
@@ -39,10 +41,11 @@ def update_or_create_employees(employees: list):
                 "nom_complet": emp["name"],
                 "departement": emp["department_id"][1] if emp.get("department_id") else "",
                 "site_travail": nom_site or "",
-                # "mobile_phone": emp["mobile_phone"] or "", #TODO: normaliser le format du numéro de téléphone
-                "mobile_phone":"+2250503456789",
+                "mobile_phone": mobile_phone,
             },
         )
+        ## Force le recalcul ET la persistance de operateur_mobile / clientReferenceId
+        obj.save()
 
         if was_created:
             created += 1

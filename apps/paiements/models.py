@@ -11,7 +11,6 @@ from apps.odoo_attendance.models import Attendance, Employe
 
 class Paiement(models.Model):
     STATUT_CHOICES = [
-        # ('PENDING', 'En attente'),
         ('ENCOURS', 'En cours'),
         ('SUCCESS', 'Payé'),
         ('FAILED', 'Echoué'),
@@ -26,7 +25,7 @@ class Paiement(models.Model):
     employe = models.ForeignKey(Employe, on_delete=models.PROTECT, related_name='historique_paiements')
     date_paiement = models.DateField()
     attendances = models.ManyToManyField(Attendance, related_name='paiements')
-    statut = models.CharField(max_length=15, choices=STATUT_CHOICES, default='PENDING')
+    statut = models.CharField(max_length=15, choices=STATUT_CHOICES, default='ENCOURS')
 
     montant = models.DecimalField(max_digits=12, decimal_places=2)
     phone_number = PhoneNumberField()

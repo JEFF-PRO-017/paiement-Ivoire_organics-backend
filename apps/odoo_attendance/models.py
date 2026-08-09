@@ -15,7 +15,7 @@ class Employe(models.Model):
     mobile_phone = PhoneNumberField(null=True, blank=True)
     # Déduit automatiquement du mobile_phone au save() — jamais saisi manuellement
     operateur_mobile = models.CharField(max_length=30, choices=OPERATEUR_CHOICES, null=True, blank=True)
-    # notchpay_beneficiary_id = models.CharField(max_length=50, null=True, blank=True, unique=True)
+    clientReferenceId = models.CharField(max_length=50, null=True, blank=True, unique=True)
 
     class Meta:
         db_table = 'employes'
@@ -24,17 +24,26 @@ class Employe(models.Model):
         if self.mobile_phone and not str(self.mobile_phone).startswith('+'):
             self.mobile_phone = None
 
-        numero = str(self.mobile_phone).replace('+225', '').replace(' ', '')
-        if numero.startswith(('07', '08', '09')):
-            self.operateur_mobile = 'ORANGE_CIV'
-        if numero.startswith(('05', '06', '04')):
-            self.operateur_mobile = 'MTN_MOMO_CIV'
+        if self.mobile_phone:
+            numero = str(self.mobile_phone).replace('+225', '').replace(' ', '')
+            if numero.startswith(('07', '08', '09')):
+                self.operateur_mobile = 'ORANGE_CIV'
+            elif numero.startswith(('05', '06', '04')):
+                self.operateur_mobile = 'MTN_MOMO_CIV'
+            else:
+                self.operateur_mobile = None
+        else:
+            self.operateur_mobile = None
+
+        # crée le clientReferenceId si il n'existe pas
+        if not self.clientReferenceId:
+            self.clientReferenceId = f"{self.odoo_id}-{self.nom_complet.replace(' ', '')}"
+
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.nom_complet} ({self.odoo_id})'
 
-    
 
 class Attendance(models.Model):
     STATUT_CHOICES = [

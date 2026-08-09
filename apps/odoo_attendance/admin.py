@@ -12,7 +12,7 @@ class AttendanceAdmin(admin.ModelAdmin):
     
 @admin.register(Employe)
 class EmployeAdmin(admin.ModelAdmin):
-    list_display  = ('id','odoo_id', 'nom_complet', 'departement', 'site_travail','mobile_phone','operateur_mobile', 'statut')
+    list_display  = ('id','odoo_id', 'nom_complet', 'departement', 'site_travail','mobile_phone','operateur_mobile', 'clientReferenceId','statut')
     list_filter   = ('statut', 'departement','site_travail','operateur_mobile')
     search_fields = ('nom_complet', 'odoo_id')
 
@@ -20,7 +20,7 @@ class EmployeAdmin(admin.ModelAdmin):
 
 @admin.register(TarifJournalier)
 class TarifJournalierAdmin(admin.ModelAdmin):
-    list_display = ('montant', 'date_effet', 'est_actif')
+    list_display = ('id','montant', 'date_effet', 'est_actif')
     list_filter = ('date_effet',)
     ordering = ('-date_effet',)
     search_fields = ('montant',)

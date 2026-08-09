@@ -4,6 +4,7 @@ from django.utils import timezone
 from apps.odoo_attendance.models import Attendance
 from apps.paiements.models import ConfigurationPaiement, Paiement
 from apps.pawa_pay.client import consulter_payout, envoyer_bulk_payout
+from django.conf import settings
 
 
 def creer_paiements_en_attente(employes=None, type_paiement='DEMANDE'):
@@ -30,7 +31,6 @@ def creer_paiements_en_attente(employes=None, type_paiement='DEMANDE'):
             phone_number=employe.mobile_phone,
             methode_paiement=employe.operateur_mobile,
             type_paiement=type_paiement,
-            statut='PENDING',
         )
         paiement.attendances.set(attendances)
         paiements.append(paiement)
@@ -44,11 +44,13 @@ def _construire_payload_bulk(paiements):
 
     for paiement in paiements:
         provider = paiement.methode_paiement
+        #si je suis en mode debug le prix c'est 15 sinon c'est le vrai
+        amount = str(paiement.montant) if not settings.DEBUG else "15"  
         payload.append({
             "payoutId": paiement.reference,
-            # "amount": str(paiement.montant), #TODO REMETTRE APRES LA VRAI VALUE
-            "amount": "15", #TODO: A SUPPRIMER, C'EST POUR TESTER
+            "amount": amount,
             "currency": "XOF",
+            "clientReferenceId": paiement.employe.clientReferenceId,
             "recipient": {
                 "type": "MMO",
                 "accountDetails": {
@@ -68,7 +70,7 @@ def _construire_payload_bulk(paiements):
 def executer_paiements(paiements):
     """
     Envoie les paiements à PawaPay et passe leur statut à ENCOURS.
-    Le statut final (SUCCESS/FAILED) arrive plus tard via le callback.
+    Le statut final (ACCEPTED/REJECTED/DUPLICATE_IGNORED) arrive plus tard via le callback.
     """
     if not paiements:
         return None
@@ -76,16 +78,19 @@ def executer_paiements(paiements):
     payload = _construire_payload_bulk(paiements)
     payouts = envoyer_bulk_payout(payload)
 
-     #TODO: VERIFIER LES CODES DE RETOUR DE L'API PAWAPAY
-
     for payout in payouts:
-        if payout.get('status') != 'SUCCESS':
-            continue
-        paiement = Paiement.objects.get(reference=payout.get('payoutId'))
-        paiement.statut = 'ENCOURS'
-        paiement.date_envoi = timezone.now()
-        paiement.reponse_brute = payout
-        paiement.save()
+        if payout.get('status') == 'ACCEPTED':
+            paiement = Paiement.objects.get(reference=payout.get('payoutId'))
+            paiement.statut = 'ENCOURS'
+            paiement.date_envoi = timezone.now()
+            paiement.reponse_brute = payout
+            paiement.save()
+        else :
+            paiement = Paiement.objects.get(reference=payout.get('payoutId'))
+            paiement.statut = 'FAILED'
+            paiement.date_envoi = timezone.now()
+            paiement.reponse_brute = payout
+            paiement.save()
 
     return payouts
 
@@ -103,15 +108,17 @@ def executer_cycle_automatique():
 
 def callback_paiement_status_automatique():
     """
-    Vérifie le statut des paiements en cours (ENCOURS) et met à jour leur statut final (SUCCESS/FAILED).
+    Vérifie le statut des paiements en cours (ENCOURS) et met à jour leur statut final (ACCEPTED/ENQUEUED/PROCESSING/IN_RECONCILIATION/COMPLETED/FAILED).
     À appeler régulièrement (scheduler).
     """
     paiements_en_cours = Paiement.objects.filter(statut='ENCOURS')
 
     for paiement in paiements_en_cours:
-        reponse = consulter_payout(paiement.reference) #TODO: VERIFIER LES CODES DE RETOUR DE L'API PAWAPAY
-        statut = reponse.get('status')
-        if statut == 'SUCCESS':
-            paiement.mettre_a_jour_statut('SUCCESS')
-        elif statut == 'FAILED':
-            paiement.mettre_a_jour_statut('FAILED')
+        reponse = consulter_payout(paiement.reference)
+        data = reponse.get('data', {})
+        statut = data.get('status')
+        if statut =='FOUND':
+            if data.status == 'COMPLETED':
+                paiement.mettre_a_jour_statut('SUCCESS')
+            elif data.status == 'FAILED':
+                paiement.mettre_a_jour_statut('FAILED') 

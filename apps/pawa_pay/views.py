@@ -12,7 +12,7 @@ def _resume(paiements):
         'total': len(paiements),
         'reussis': sum(1 for p in paiements if p.statut == 'SUCCESS'),
         'echoues': sum(1 for p in paiements if p.statut == 'FAILED'),
-        'en_attente': sum(1 for p in paiements if p.statut == 'PENDING'),
+        'en_attente': sum(1 for p in paiements if p.statut == 'ENCOURS'),
     }
 
 
