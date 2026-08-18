@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+import os
 
 
 class OdooAttendanceConfig(AppConfig):
@@ -6,10 +7,8 @@ class OdooAttendanceConfig(AppConfig):
     verbose_name = "Synchronisation Odoo"
 
     def ready(self):
-        import os
-
-        # if os.environ.get("SCHEDULER_ENABLED") != "true":
-        #     return
+        if os.environ.get("VERCEL"):
+            return
 
         if os.environ.get("RUN_MAIN") == "false":
             return
@@ -19,7 +18,7 @@ class OdooAttendanceConfig(AppConfig):
 
         def delayed_start():
             import time
-            time.sleep(60)  # attendre 1 minute
+            time.sleep(60)
             start()
 
         thread = threading.Thread(target=delayed_start, daemon=True)
