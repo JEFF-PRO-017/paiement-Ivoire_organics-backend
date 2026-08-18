@@ -10,11 +10,5 @@
             "src": "/(.*)",
             "dest": "config/wsgi.py"
         }
-    ],
-    "crons": [
-        {
-            "path": "/api/cron/sync-odoo",
-            "schedule": "0 */6 * * *"
-        }
     ]
 }
