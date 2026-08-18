@@ -6,10 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG      = config('DEBUG', cast=bool, default=False)
-# ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='paiement-ivoire-organics-backend.onrender.com').split(',') #// TODO A CORRIGER A LA FIN 
-#TODO LORS DU DEPLOIEMENT FINAL SUPRIMMER VERCEL.JSON , WSGI.PY ET MODIFIER LES ALLOWED_HOSTS CI-DESSUS 
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='paiement-ivoire-organics-backend.onrender.com').split(',')
 
-ALLOWED_HOSTS = ['.vercel.app']
 # ── Apps ──────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',
