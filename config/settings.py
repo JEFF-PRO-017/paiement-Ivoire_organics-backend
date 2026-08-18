@@ -155,5 +155,4 @@ MAINTENANCE_EMAIL   = config('MAINTENANCE_EMAIL',  default='')
 
 PAWAPAY_BASE_URL =config('PAWAPAY_BASE_URL', 'https://api.sandbox.pawapay.io')
 PAWAPAY_API_TOKEN = config('PAWAPAY_API_TOKEN')
-PAWAPAY_PERIODE_JOURS = int(config('PAWAPAY_PERIODE_JOURS', default=15))
-
+PAWAPAY_PERIODE_JOURS = int(config('PAWAPAY_PERIODE_JOURS', default=14))
