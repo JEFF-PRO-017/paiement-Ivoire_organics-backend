@@ -2,6 +2,7 @@ from apps.paiements.models import ConfigurationPaiement
 from rest_framework.views import APIView
 
 from apps.pawa_pay.client import consulter_solde
+from core.mixins import avec_site
 from core.response import ApiResponse
 from .serializers import ConfigurationPaiementSerializer
 from .services import creer_paiements_en_attente, executer_paiements
@@ -15,15 +16,16 @@ def _resume(paiements):
         'en_attente': sum(1 for p in paiements if p.statut == 'ENCOURS'),
     }
 
-
 class ConfigurationPaiementView(APIView):
-    """GET: état actuel. POST {mode}: bascule MANUEL <-> AUTOMATIQUE."""
+    """GET: état actuel du site. POST {mode}: bascule MANUEL <-> AUTOMATIQUE."""
 
-    def get(self, request):
-        config = ConfigurationPaiement.get_instance()
+    @avec_site()
+    def get(self, request, site):
+        config = ConfigurationPaiement.get_instance(site)
         return ApiResponse.success(data=ConfigurationPaiementSerializer(config).data)
 
-    def post(self, request):
+    @avec_site()
+    def post(self, request, site):
         mode = request.data.get('mode')
         if mode not in ('MANUEL', 'AUTOMATIQUE'):
             return ApiResponse.error(
@@ -33,7 +35,7 @@ class ConfigurationPaiementView(APIView):
                 code="INVALID_MODE"
             )
 
-        config = ConfigurationPaiement.get_instance()
+        config = ConfigurationPaiement.get_instance(site)
         config.passer_en_automatique() if mode == 'AUTOMATIQUE' else config.passer_en_manuel()
 
         return ApiResponse.success(

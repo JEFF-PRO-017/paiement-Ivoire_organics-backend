@@ -1,0 +1,8 @@
+{
+  "builds": [
+    { "src": "paiement_backend/wsgi.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "paiement_backend/wsgi.py" }
+  ]
+}

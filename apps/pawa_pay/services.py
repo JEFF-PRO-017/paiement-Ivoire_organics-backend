@@ -1,6 +1,7 @@
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.accounts.models import Site
 from apps.odoo_attendance.models import Attendance
 from apps.paiements.models import ConfigurationPaiement, Paiement
 from apps.pawa_pay.client import consulter_payout, envoyer_bulk_payout
@@ -79,32 +80,36 @@ def executer_paiements(paiements):
     payouts = envoyer_bulk_payout(payload)
 
     for payout in payouts:
+        paiement = Paiement.objects.get(reference=payout.get('payoutId'))
         if payout.get('status') == 'ACCEPTED':
-            paiement = Paiement.objects.get(reference=payout.get('payoutId'))
-            paiement.statut = 'ENCOURS'
+            paiement.mettre_a_jour_statut('ENCOURS')
             paiement.date_envoi = timezone.now()
             paiement.reponse_brute = payout
-            paiement.save()
         else :
-            paiement = Paiement.objects.get(reference=payout.get('payoutId'))
-            paiement.statut = 'FAILED'
+            paiement.mettre_a_jour_statut('FAILED')
             paiement.date_envoi = timezone.now()
             paiement.reponse_brute = payout
-            paiement.save()
+        paiement.save()  
 
     return payouts
 
 
 def executer_cycle_automatique():
-    """A appeler chaque jour (scheduler). Agit seulement si mode AUTOMATIQUE + échéance atteinte."""
-    config = ConfigurationPaiement.get_instance()
+    """A appeler chaque jour (scheduler). Agit sur chaque site en mode AUTOMATIQUE dont l'échéance est atteinte."""
+    for site in Site.objects.all():
+        _executer_cycle_automatique_pour_site(site)
+
+
+def _executer_cycle_automatique_pour_site(site):
+    config = ConfigurationPaiement.get_instance(site)
     if config.mode != 'AUTOMATIQUE' or not config.echeance_atteinte():
         return
-
-    paiements = creer_paiements_en_attente(type_paiement='AUTOMATIQUE')
+    print(f"[DEV] executer_cycle_automatique : site={site.nom} mode={config.mode} échéance_atteinte={config.echeance_atteinte()}")
+    paiements = creer_paiements_en_attente(type_paiement='AUTOMATIQUE', site=site)
     executer_paiements(paiements)
     config.derniere_execution_auto = timezone.now()
     config.save()
+    #TODO : VERIFIER LE BON FONCTIONNEMENT APRES ET AVANT LE L'EXECTUSION
 
 def callback_paiement_status_automatique():
     """
@@ -112,7 +117,8 @@ def callback_paiement_status_automatique():
     À appeler régulièrement (scheduler).
     """
     paiements_en_cours = Paiement.objects.filter(statut='ENCOURS')
-
+    #TODO : VERIFIER LE BON FONCTIONNEMENT APRES ET AVANT LE L'EXECTUSION
+    print(f"[DEV] callback_paiement_status_automatique : {paiements_en_cours.count()} paiements en cours à vérifier.")
     for paiement in paiements_en_cours:
         reponse = consulter_payout(paiement.reference)
         data = reponse.get('data', {})
@@ -120,5 +126,9 @@ def callback_paiement_status_automatique():
         if statut =='FOUND':
             if data.status == 'COMPLETED':
                 paiement.mettre_a_jour_statut('SUCCESS')
+                paiement.reponse_brute = reponse
+
             elif data.status == 'FAILED':
                 paiement.mettre_a_jour_statut('FAILED') 
+                paiement.reponse_brute = reponse
+            paiement.save()

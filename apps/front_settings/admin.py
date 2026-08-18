@@ -1,3 +1,9 @@
 from django.contrib import admin
+from .models import Parametre 
 
-# Register your models here.
+@admin.register(Parametre)
+class ParametreAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'site', 'zoom','mode',)
+    search_fields = ('user', 'site',)
+    list_filter = ('site', 'mode',)
+    ordering = ('user',)

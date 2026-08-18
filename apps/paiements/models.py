@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
+from apps.accounts.models import Site
 from apps.odoo_attendance.models import Attendance, Employe
 
 
@@ -67,25 +68,31 @@ class Paiement(models.Model):
         elif nouveau_statut == 'FAILED':
             self.attendances.update(statut_paiement='IMPAYE')
 
-
 class ConfigurationPaiement(models.Model):
     MODE_CHOICES = [('MANUEL', 'Manuel'), ('AUTOMATIQUE', 'Automatique')]
 
     mode = models.CharField(max_length=15, choices=MODE_CHOICES, default='MANUEL')
     date_changement_mode = models.DateTimeField(null=True, blank=True)
     derniere_execution_auto = models.DateTimeField(null=True, blank=True)
+    site = models.ForeignKey(
+        Site,
+        on_delete=models.CASCADE,
+        related_name='configuration_paiement',
+    )
 
     class Meta:
         db_table = 'configuration_paiement'
+        constraints = [
+            models.UniqueConstraint(fields=['site'], name='unique_config_paiement_par_site')
+        ]
 
     @classmethod
-    def get_instance(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
+    def get_instance(cls, site):
+        obj, _ = cls.objects.get_or_create(site=site)
         return obj
 
     @property
     def periode_jours(self):
-        """Durée du cycle automatique, configurable via .env (PAWAPAY_PERIODE_JOURS)."""
         return settings.PAWAPAY_PERIODE_JOURS
 
     def passer_en_automatique(self):
