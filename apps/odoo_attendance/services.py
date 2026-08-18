@@ -101,7 +101,7 @@ def save_attendances(attendances: list):
 
         # récupère le tarif applicable à la date de la présence
         try:
-            montant = get_montant_journalier(aware_dt.date())  # fix : nom de fonction corrigé
+            montant = get_montant_journalier(aware_dt.date()) if not settings.DEBUG else 15  # fix : nom de fonction corrigé
         except ValueError as e:
             # aucun tarif configuré pour cette date -> on log et on passe à la suivante
             logger.error(f"[Services] {e}")
