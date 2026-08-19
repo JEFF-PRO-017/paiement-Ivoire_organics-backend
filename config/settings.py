@@ -6,8 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG      = config('DEBUG', cast=bool, default=False)
-# ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='paiement-ivoire-organics-backend.onrender.com').split(',')
-ALLOWED_HOSTS = ['.vercel.app'] #TODO: A CHANGER POUR PROD
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='paiement-ivoire-organics-backend.onrender.com').split(',')
+# ALLOWED_HOSTS = ['.vercel.app'] #TODO: A CHANGER POUR PROD
 # ── Apps ──────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',

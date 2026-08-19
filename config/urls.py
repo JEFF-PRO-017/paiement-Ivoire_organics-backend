@@ -20,5 +20,5 @@ urlpatterns = [
     path('api/paiements/',      include('apps.paiements.urls')),
     path('api/odoo_attendance/',include('apps.odoo_attendance.urls')),
     path('api/front_settings/',include('apps.front_settings.urls')),
-    path('api/notch-pay/',include('apps.pawa_pay.urls'))
+    path('api/pawa_pay/',include('apps.pawa_pay.urls'))
 ]
