@@ -117,18 +117,28 @@ def callback_paiement_status_automatique():
     À appeler régulièrement (scheduler).
     """
     paiements_en_cours = Paiement.objects.filter(statut='ENCOURS')
-    #TODO : VERIFIER LE BON FONCTIONNEMENT APRES ET AVANT LE L'EXECTUSION
     print(f"[DEV] callback_paiement_status_automatique : {paiements_en_cours.count()} paiements en cours à vérifier.")
+
     for paiement in paiements_en_cours:
         reponse = consulter_payout(paiement.reference)
-        data = reponse.get('data', {})
-        statut = data.get('status')
-        if statut =='FOUND':
-            if data.status == 'COMPLETED':
-                paiement.mettre_a_jour_statut('SUCCESS')
-                paiement.reponse_brute = reponse
+        print("reponse consulter payout", reponse)
 
-            elif data.status == 'FAILED':
-                paiement.mettre_a_jour_statut('FAILED') 
-                paiement.reponse_brute = reponse
+        if reponse.get('status') != 'FOUND':
+            print(f"[DEV] paiement {paiement.reference} : status racine != FOUND, on saute")
+            continue
+
+        data = reponse.get('data', {})
+        statut_paiement = data.get('status')
+        print(f"[DEV] paiement {paiement.reference} : statut pawapay = {statut_paiement}")
+
+        if statut_paiement == 'COMPLETED':
+            paiement.mettre_a_jour_statut('SUCCESS')
+            paiement.reponse_brute = reponse
             paiement.save()
+            print(f"[DEV] paiement {paiement.reference} : mis à jour -> SUCCESS")
+
+        elif statut_paiement == 'FAILED':
+            paiement.mettre_a_jour_statut('FAILED')
+            paiement.reponse_brute = reponse
+            paiement.save()
+            print(f"[DEV] paiement {paiement.reference} : mis à jour -> FAILED")

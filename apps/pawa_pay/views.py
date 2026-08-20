@@ -1,11 +1,13 @@
 from apps.paiements.models import ConfigurationPaiement
+from apps.accounts.models import Site
 from rest_framework.views import APIView
 
 from apps.pawa_pay.client import consulter_solde
 from core.mixins import avec_site
 from core.response import ApiResponse
 from .serializers import ConfigurationPaiementSerializer
-from .services import creer_paiements_en_attente, executer_paiements
+from .services import callback_paiement_status_automatique, creer_paiements_en_attente, executer_paiements
+from django.shortcuts import get_object_or_404
 
 
 def _resume(paiements):
@@ -21,7 +23,10 @@ class ConfigurationPaiementView(APIView):
 
     @avec_site()
     def get(self, request, site):
-        config = ConfigurationPaiement.get_instance(site)
+        site_obj = get_object_or_404(Site, nom=site)
+        print("site_obj",site_obj)
+        config = ConfigurationPaiement.get_instance(site_obj)
+        print("config",config)
         return ApiResponse.success(data=ConfigurationPaiementSerializer(config).data)
 
     @avec_site()
@@ -35,7 +40,8 @@ class ConfigurationPaiementView(APIView):
                 code="INVALID_MODE"
             )
 
-        config = ConfigurationPaiement.get_instance(site)
+        site_obj = get_object_or_404(Site,nom=site)
+        config = ConfigurationPaiement.get_instance(site_obj)
         config.passer_en_automatique() if mode == 'AUTOMATIQUE' else config.passer_en_manuel()
 
         return ApiResponse.success(
@@ -64,3 +70,9 @@ class SoldePawaPayView(APIView):
     def get(self, request):
         solde = consulter_solde()
         return ApiResponse.success(data={'solde': solde})
+
+
+class VerifierPaiementsEnCoursView(APIView):
+    def get(self, request):
+        callback_paiement_status_automatique()
+        return ApiResponse.success(message="Vérification des paiements en cours terminée.")

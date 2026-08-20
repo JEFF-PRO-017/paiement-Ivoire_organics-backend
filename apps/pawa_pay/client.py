@@ -64,5 +64,5 @@ def consulter_payout(payout_id):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        logger.error("Erreur lors de la consultation du payout %s: %s", payout_id, e)
+        print("Erreur lors de la consultation du payout %s: %s", payout_id, e)
         raise PawaPayError(f"Impossible de consulter le payout {payout_id}: {e}") from e

@@ -25,6 +25,12 @@ class AttendanceParEmployeSerializer(serializers.Serializer):
 
 class PaiementSerializer(serializers.ModelSerializer):
     """Sérialise un paiement."""
+    employe = EmployeSerializer(read_only=True)
+    employe_id = serializers.PrimaryKeyRelatedField(
+        queryset=Employe.objects.all(),
+        source='employe',
+        write_only=True
+    )
     class Meta:
         model  = Paiement
         fields = '__all__'
