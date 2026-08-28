@@ -8,7 +8,7 @@ from apps.pawa_pay.client import consulter_payout, envoyer_bulk_payout
 from django.conf import settings
 
 
-def creer_paiements_en_attente(employes=None, type_paiement='DEMANDE'):
+def creer_paiements_en_attente(employes=None, type_paiement='DEMANDE',site=None):
     """Regroupe les attendances impayées par employé -> 1 virement par employé."""
     qs = Attendance.objects.filter(statut_paiement='IMPAYE')
 
@@ -17,7 +17,7 @@ def creer_paiements_en_attente(employes=None, type_paiement='DEMANDE'):
 
     paiements = []
     for employe_id in qs.values_list('employe_id', flat=True).distinct():
-        attendances = qs.filter(employe_id=employe_id)
+        attendances = qs.filter(employe_id=employe_id,employe__site_travail=site)
         employe = attendances.first().employe
 
         if not employe.mobile_phone or not employe.operateur_mobile:
@@ -105,7 +105,7 @@ def _executer_cycle_automatique_pour_site(site):
     if config.mode != 'AUTOMATIQUE' or not config.echeance_atteinte():
         return
     print(f"[DEV] executer_cycle_automatique : site={site.nom} mode={config.mode} échéance_atteinte={config.echeance_atteinte()}")
-    paiements = creer_paiements_en_attente(type_paiement='AUTOMATIQUE', site=site)
+    paiements = creer_paiements_en_attente(employes=None,type_paiement='AUTOMATIQUE', site=site)
     executer_paiements(paiements)
     config.derniere_execution_auto = timezone.now()
     config.save()

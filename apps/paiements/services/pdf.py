@@ -11,16 +11,16 @@ def generer_pdf_historique(lignes) -> bytes:
     styles = getSampleStyleSheet()
     elems  = [Paragraph('Historique des Paiements', styles['Title']), Spacer(1, 10)]
 
-    header = ['Date', 'Employé', 'Matricule', 'Département', 'Jours', 'Montant (FCFA)', 'Statut']
+    header = ['Date', 'Employé', 'Reference', 'Département', 'Jours', 'Montant (FCFA)', 'Statut']
     rows   = [header] + [
         [
             str(l.date_paiement),
             l.employe.nom_complet,
-            l.employe.odoo_id,
+            l.reference,
             l.employe.departement,
-            str(l.nombre_jours),
+            l.attendances.count(),
             f"{l.montant:,.0f}",
-            '—',
+            l.statut,
         ]
         for l in lignes
     ]

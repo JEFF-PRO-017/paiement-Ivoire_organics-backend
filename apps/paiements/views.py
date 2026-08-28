@@ -35,7 +35,7 @@ class AttendanceView(AvecSiteMixin, ListAPIView):
     def get_queryset(self):
         if not self.site:
             return Attendance.objects.none()
-        qs = Attendance.objects.select_related('employe').filter(employe__site_travail=self.site)
+        qs = Attendance.objects.select_related('employe').filter(employe__site_travail=self.site,employe__statut='ACTIF')
         return get_attendances_par_employe(
             qs,
             statut_paiement=self.request.query_params.get('statut_paiement'),

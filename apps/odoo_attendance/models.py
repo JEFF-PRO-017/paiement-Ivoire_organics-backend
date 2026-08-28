@@ -16,6 +16,7 @@ class Employe(models.Model):
     # Déduit automatiquement du mobile_phone au save() — jamais saisi manuellement
     operateur_mobile = models.CharField(max_length=30, choices=OPERATEUR_CHOICES, null=True, blank=True)
     clientReferenceId = models.CharField(max_length=50, null=True, blank=True, unique=True)
+    permanent = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'employes'
@@ -38,6 +39,9 @@ class Employe(models.Model):
         # crée le clientReferenceId si il n'existe pas
         if not self.clientReferenceId:
             self.clientReferenceId = f"{self.odoo_id}-{self.nom_complet.replace(' ', '')}"
+
+        if self.permanent :
+            self.statut ='INACTIF'
 
         super().save(*args, **kwargs)
 

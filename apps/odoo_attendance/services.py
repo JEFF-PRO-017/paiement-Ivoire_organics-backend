@@ -73,7 +73,7 @@ def save_attendances(attendances: list):
             continue
 
         # on vérifie le statut au lieu de l'écraser
-        if employe.statut != 'ACTIF':
+        if employe.statut != 'ACTIF' and not employe.permanent:
             employe.statut = 'ACTIF'
             employe.save()
         

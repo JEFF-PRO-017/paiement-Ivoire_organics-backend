@@ -52,10 +52,10 @@ class ConfigurationPaiementView(APIView):
 
 class PaiementManuelView(APIView):
     """POST {employe_ids: [...]?}: déclenche le paiement à la demande."""
-
-    def post(self, request):
+    @avec_site()
+    def post(self, request,site):
         employe_ids = request.data.get('employe_ids')
-        paiements = creer_paiements_en_attente(employes=employe_ids, type_paiement='DEMANDE')
+        paiements = creer_paiements_en_attente(employes=employe_ids, type_paiement='DEMANDE',site=site)
         response=executer_paiements(paiements)
         #mettre les exceptions dans un tableau pour les afficher dans le front
         return ApiResponse.success(
