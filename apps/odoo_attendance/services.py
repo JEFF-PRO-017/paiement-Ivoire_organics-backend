@@ -26,6 +26,7 @@ def update_or_create_employees(employees: list):
     created = updated = 0
 
     for emp in employees:
+       
         nom_site = emp.get("work_location")
         if nom_site and not Site.objects.filter(nom__iexact=nom_site).exists():
             logger.warning(
@@ -35,6 +36,9 @@ def update_or_create_employees(employees: list):
         #si nous somme en mode debug on met un numero de telephone par defaut pour eviter les erreurs de paiement
         mobile_phone = emp["mobile_phone"] if not settings.DEBUG else "+2250503456789"
 
+        if emp["id"]==645: 
+             print(f"Processing employee:{emp}")
+
         obj, was_created = Employe.objects.update_or_create(
             odoo_id=emp["id"],
             defaults={
@@ -42,6 +46,7 @@ def update_or_create_employees(employees: list):
                 "departement": emp["department_id"][1] if emp.get("department_id") else "",
                 "site_travail": nom_site or "",
                 "mobile_phone": mobile_phone,
+                "total_wage" :emp["total_wage"]
             },
         )
         ## Force le recalcul ET la persistance de operateur_mobile / clientReferenceId
@@ -101,7 +106,7 @@ def save_attendances(attendances: list):
 
         # récupère le tarif applicable à la date de la présence
         try:
-            montant = get_montant_journalier(aware_dt.date()) if not settings.DEBUG else 15  # fix : nom de fonction corrigé
+            montant = employe.total_wage if not settings.DEBUG else 15  # fix : nom de fonction corrigé
         except ValueError as e:
             # aucun tarif configuré pour cette date -> on log et on passe à la suivante
             logger.error(f"[Services] {e}")
@@ -133,10 +138,10 @@ def save_attendances(attendances: list):
     )
 
 
-def get_montant_journalier(date_reference):
-    #retourne le tarif applicable a une date donnee (le plus recent avant cette date)
-    tarif = TarifJournalier.objects.filter(date_effet__lte=date_reference).order_by('-date_effet').first()
-    if not tarif:
-        #si aucun tarif n'est trouvé, creons un tarif par defaut
-        tarif = TarifJournalier.objects.create(montant=3000.0, date_effet=date_reference)
-    return tarif.montant
+# def get_montant_journalier(date_reference):
+#     #retourne le tarif applicable a une date donnee (le plus recent avant cette date)
+#     tarif = TarifJournalier.objects.filter(date_effet__lte=date_reference).order_by('-date_effet').first()
+#     if not tarif:
+#         #si aucun tarif n'est trouvé, creons un tarif par defaut
+#         tarif = TarifJournalier.objects.create(montant=3000.0, date_effet=date_reference)
+#     return tarif.montant

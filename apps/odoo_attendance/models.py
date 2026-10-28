@@ -17,6 +17,7 @@ class Employe(models.Model):
     operateur_mobile = models.CharField(max_length=30, choices=OPERATEUR_CHOICES, null=True, blank=True)
     clientReferenceId = models.CharField(max_length=50, null=True, blank=True, unique=True)
     permanent = models.BooleanField(default=False)
+    total_wage = models.CharField(max_length=10,blank=True,default='3000')
 
     class Meta:
         db_table = 'employes'

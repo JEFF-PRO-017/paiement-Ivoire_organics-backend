@@ -1,5 +1,5 @@
 from apps.odoo_attendance.models import Attendance, Employe
-from apps.odoo_attendance.services import get_montant_journalier
+# from apps.odoo_attendance.services import get_montant_journalier
 from ..models import   Paiement
 from django.db.models import Sum, Avg, Count
 from apps.odoo_attendance.models import Attendance, Employe
@@ -81,7 +81,7 @@ def create_attendance_manuel(data: dict) -> Attendance:
         date_validation_paiement = data.get('date_validation_paiement'),
         statut_paiement          = data.get('statut_paiement'),
         statut_attendance        = 'CREATION_MANUELLE',
-        montant_journalier       = get_montant_journalier(date_work.date()),
+        montant_journalier       = employe.total_wage,
         odoo_attendance_id       = f"#_{employe.id}_{date_work.date()}",
     )
     try:

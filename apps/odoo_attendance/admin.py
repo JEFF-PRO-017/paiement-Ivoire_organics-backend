@@ -12,7 +12,7 @@ class AttendanceAdmin(admin.ModelAdmin):
     
 @admin.register(Employe)
 class EmployeAdmin(admin.ModelAdmin):
-    list_display  = ('id','odoo_id', 'nom_complet', 'departement', 'site_travail','mobile_phone','operateur_mobile', 'clientReferenceId','statut','permanent')
+    list_display  = ('id','odoo_id', 'nom_complet', 'departement', 'site_travail','mobile_phone','operateur_mobile','total_wage', 'clientReferenceId','statut','permanent')
     list_filter   = ('statut', 'departement','site_travail','operateur_mobile','permanent')
     search_fields = ('nom_complet', 'odoo_id')
 

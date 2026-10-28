@@ -27,7 +27,7 @@ BATCH_SIZE      = 100       # Jamais limit=0 → XML tronqué garanti
 _uid_cache: int | None = None
 
 EMPLOYEE_FIELDS   = ["id", "active", "name", "department_id", "work_location",
-                     "mobile_phone", "work_email"]
+                     "mobile_phone", "work_email", "total_wage"]
 ATTENDANCE_FIELDS = ["id", "employee_id", "action", "name", "worked_hours"]
 
 
