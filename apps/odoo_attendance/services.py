@@ -4,6 +4,7 @@ services.py
 Persistance des données Odoo en base locale.
 """
 
+from decimal import Decimal
 import logging
 from datetime import datetime, timezone 
 from django.conf import settings
@@ -33,8 +34,8 @@ def update_or_create_employees(employees: list):
                 f"[Services] Site introuvable : '{nom_site}' "
                 f"(employé {emp.get('name')} odoo_id={emp['id']})"
             )
-        #si nous somme en mode debug on met un numero de telephone par defaut pour eviter les erreurs de paiement
-        mobile_phone = emp["mobile_phone"] if not settings.DEBUG else "+2250503456789"
+            
+        mobile_phone = normaliser_telephone(emp.get("mobile_phone"))
 
         if emp["id"]==645: 
              print(f"Processing employee:{emp}")
@@ -106,13 +107,13 @@ def save_attendances(attendances: list):
 
         # récupère le tarif applicable à la date de la présence
         try:
-            montant = employe.total_wage if not settings.DEBUG else 15  # fix : nom de fonction corrigé
+            montant = (str(employe.total_wage or 0))   # fix : nom de fonction corrigé
         except ValueError as e:
             # aucun tarif configuré pour cette date -> on log et on passe à la suivante
             logger.error(f"[Services] {e}")
             errors += 1
             continue
-
+            
         Attendance.objects.create(
             employe             = employe,
             action              = att["action"],
@@ -137,6 +138,24 @@ def save_attendances(attendances: list):
         f"{errors} erreurs / {portefeuilles_ok} portefeuilles OK."
     )
 
+from phonenumber_field.phonenumber import PhoneNumber
+
+def normaliser_telephone(numero):
+    if not numero or isinstance(numero, bool):
+        return None
+
+    numero = str(numero).strip()
+
+    if not numero:
+        return None
+
+    try:
+        telephone = PhoneNumber.from_string(numero, region="CI")
+
+        return telephone if telephone.is_valid() else None
+
+    except (ValueError, TypeError):
+        return None
 
 # def get_montant_journalier(date_reference):
 #     #retourne le tarif applicable a une date donnee (le plus recent avant cette date)
