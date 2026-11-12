@@ -138,24 +138,29 @@ def save_attendances(attendances: list):
         f"{errors} erreurs / {portefeuilles_ok} portefeuilles OK."
     )
 
+import re
+import phonenumbers
 from phonenumber_field.phonenumber import PhoneNumber
 
-def normaliser_telephone(numero):
+MAX_CHIFFRES = 15  # maximum E.164
+
+
+def normaliser_telephone(numero, region="CI"):
     if not numero or isinstance(numero, bool):
         return None
 
     numero = str(numero).strip()
+    chiffres = re.sub(r"\D", "", numero)
 
-    if not numero:
+    if not chiffres or len(chiffres) > MAX_CHIFFRES:
         return None
 
     try:
-        telephone = PhoneNumber.from_string(numero, region="CI")
-
-        return telephone if telephone.is_valid() else None
-
-    except (ValueError, TypeError):
+        telephone = PhoneNumber.from_string(numero, region=region)
+    except (phonenumbers.NumberParseException, ValueError, TypeError):
         return None
+
+    return telephone.as_e164 if telephone.is_valid() else None
 
 # def get_montant_journalier(date_reference):
 #     #retourne le tarif applicable a une date donnee (le plus recent avant cette date)
